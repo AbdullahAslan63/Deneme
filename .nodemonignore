@@ -1,0 +1,33 @@
+# Nodemon'un izlemeyeceği dosyalar
+# Bu dosyalar değiştiğinde sunucu otomatik yeniden başlamayacak
+
+# Log dosyaları
+*.log
+logs/
+
+# Veritabanı dosyaları
+*.sqlite
+*.sqlite3
+
+# Çevre değişkenleri (sık sık değişebilir)
+.env
+.env.local
+.env.*.local
+
+# Geçici dosyalar
+.tmp/
+temp/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE dosyaları
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS dosyaları
+.DS_Store
+Thumbs.db

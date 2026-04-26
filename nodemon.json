@@ -1,0 +1,18 @@
+{
+  "watch": ["*.js", "src/"],
+  "ext": "js,json",
+  "ignore": [
+    ".git",
+    "node_modules/",
+    "logs/",
+    "*.log",
+    ".env",
+    ".env.*",
+    "coverage/",
+    ".nyc_output/",
+    "__tests__/",
+    "*.test.js"
+  ],
+  "delay": 1000,
+  "verbose": false
+}

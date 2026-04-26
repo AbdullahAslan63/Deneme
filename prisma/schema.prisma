@@ -1,0 +1,204 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         UserRole @default(RESIDENT)
+  fcmToken     String?
+  language     String   @default("tr")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Yönetici ilişkileri
+  managedBuildings Building[] @relation("BuildingManager")
+
+  // Sakin ilişkileri
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
+  apartmentId String?
+
+  // Ortak
+  notifications Notification[]
+  tickets       Ticket[]
+  subscription  Subscription?
+}
+
+enum UserRole {
+  MANAGER
+  RESIDENT
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id])
+  status             SubscriptionStatus
+  plan               String // "monthly" | "annual"
+  platform           String // "ios" | "android"
+  revenuecatId       String?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+model Building {
+  id         String      @id @default(uuid())
+  name       String
+  address    String
+  city       String
+  managerId  String
+  manager    User        @relation("BuildingManager", fields: [managerId], references: [id])
+  apartments Apartment[]
+  expenses   Expense[]
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Apartment {
+  id          String       @id @default(uuid())
+  number      String // "B-12", "3A" vb.
+  floor       Int?
+  buildingId  String
+  building    Building     @relation(fields: [buildingId], references: [id])
+  residents   User[]
+  dues        Due[]
+  inviteCodes InviteCode[]
+  tickets     Ticket[]
+  createdAt   DateTime     @default(now())
+}
+
+model InviteCode {
+  id          String    @id @default(uuid())
+  code        String    @unique // Örn: "AP3-B12-X7K9"
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
+  usedAt      DateTime?
+  usedBy      String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model Due {
+  id          String    @id @default(uuid())
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("TRY")
+  month       Int // 1-12
+  year        Int
+  status      DueStatus @default(PENDING)
+  paidAt      DateTime?
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum DueStatus {
+  PENDING
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+model Expense {
+  id         String          @id @default(uuid())
+  buildingId String
+  building   Building        @relation(fields: [buildingId], references: [id])
+  title      String
+  amount     Decimal         @db.Decimal(10, 2)
+  category   ExpenseCategory
+  date       DateTime
+  note       String?
+  receiptUrl String?
+  createdAt  DateTime        @default(now())
+}
+
+enum ExpenseCategory {
+  CLEANING
+  ELEVATOR
+  ELECTRICITY
+  WATER
+  INSURANCE
+  REPAIR
+  GARDEN
+  OTHER
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  apartmentId String
+  apartment   Apartment      @relation(fields: [apartmentId], references: [id])
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  category    TicketCategory
+  status      TicketStatus   @default(OPEN)
+  updates     TicketUpdate[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+enum TicketCategory {
+  COMPLAINT
+  REQUEST
+  MALFUNCTION
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model TicketUpdate {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  message   String
+  fromRole  UserRole
+  createdAt DateTime @default(now())
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+}
+
+enum NotificationType {
+  DUE_REMINDER
+  DUE_PAID
+  TICKET_UPDATE
+  ANNOUNCEMENT
+  SYSTEM
+}
