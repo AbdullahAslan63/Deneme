@@ -1,0 +1,21 @@
+# Slang i18n Configuration
+# Base language: Turkish (tr)
+# Namespaces: common, features, db_context
+
+base_locale: tr
+locales:
+  - tr
+  - en
+
+# Namespace structure for organized strings
+namespaces:
+  - common
+  - features
+  - db_context
+
+# Multiple files support for future-proofing
+# strings.i18n.json will be the main file
+# Additional files can be added later (e.g., strings_profile.i18n.json)
+
+# Use translation files with locale suffix
+# strings.i18n.json -> strings_tr.i18n.json, strings_en.i18n.json

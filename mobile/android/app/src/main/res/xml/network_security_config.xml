@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- HTTPS enforcement: cleartext traffic disabled globally -->
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- API domain: HTTPS only -->
+        <domain includeSubdomains="true">api.aidatpanel.com</domain>
+    </domain-config>
+
+    <!-- Certificate pinning (optional, for future hardening) -->
+    <!-- <domain-config>
+        <domain includeSubdomains="true">api.aidatpanel.com</domain>
+        <pin-set expiration="2027-12-31">
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+        </pin-set>
+    </domain-config> -->
+</network-security-config>
