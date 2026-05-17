@@ -1,0 +1,342 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  phone        String?  @unique
+  role         UserRole @default(RESIDENT)
+  fcmToken     String?
+  language     String   @default("tr")
+  /// Çıkışta artırılır; refresh JWT içindeki rv ile eşleşmezse oturum iptal sayılır (ek tablo yok).
+  refreshTokenVersion Int      @default(0)
+  /// KVKK hesap kapatma: doluysa oturum reddedilir; kayıt silinmez (PII maskelenir).
+  deletedAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Yönetici ilişkileri
+  managedBuildings Building[] @relation("BuildingManager")
+
+  // Sakin ilişkileri (one-to-one)
+  apartment   Apartment? @relation(fields: [apartmentId], references: [id])
+  apartmentId String? @unique
+
+  // Ortak
+  notifications Notification[]
+  tickets       Ticket[]
+  subscription  Subscription?
+  passwordResetTokens PasswordResetToken[]
+  uploadedDekonts     Dekont[]
+
+  @@index([apartmentId])
+}
+
+/// Şifre sıfırlama: düz metin token yalnızca e-postada; DB'de SHA-256 özeti.
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
+}
+
+enum UserRole {
+  MANAGER
+  RESIDENT
+}
+
+model Subscription {
+  id                 String             @id @default(uuid())
+  userId             String             @unique
+  user               User               @relation(fields: [userId], references: [id])
+  status             SubscriptionStatus
+  plan               String // "monthly" | "annual"
+  platform           String // "ios" | "android"
+  revenuecatId       String?
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  @@index([userId])
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  TRIAL
+}
+
+model Building {
+  id                String      @id @default(uuid())
+  name              String
+  address           String
+  city              String
+  totalFloors       Int?
+  apartmentsPerFloor Int?
+  managerId         String
+  manager           User        @relation("BuildingManager", fields: [managerId], references: [id])
+  apartments        Apartment[]
+  expenses          Expense[]
+  dekonts           Dekont[]
+
+  // Aidat ayarları
+  dueAmount         Decimal?    @db.Decimal(10, 2)  // Daire başına aidat
+  dueDay            Int         @default(1)         // Her ayın kaçıncı günü
+  currency          String      @default("TRY")
+
+  // Tahsilat hesabı (dekont alıcı IBAN doğrulaması)
+  collectionIban           String?
+  collectionAccountTitle   String?
+  paymentReferenceTemplate String?
+  collectionVerifiedAt     DateTime?
+
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  @@index([managerId])
+}
+
+model Apartment {
+  id          String       @id @default(uuid())
+  number      String // "B-12", "3A" vb.
+  floor       Int?
+  buildingId  String
+  building    Building     @relation(fields: [buildingId], references: [id])
+  resident    User?        // Tek sakin (one-to-one)
+  dues        Due[]
+  inviteCodes InviteCode[]
+  tickets     Ticket[]
+  dekonts     Dekont[]
+  createdAt   DateTime     @default(now())
+
+  @@index([buildingId])
+}
+
+model InviteCode {
+  id          String    @id @default(uuid())
+  code        String    @unique // Örn: "AP3-B12-X7K9"
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
+  usedAt      DateTime?
+  usedBy      String?
+  expiresAt   DateTime
+  createdAt   DateTime  @default(now())
+
+  @@index([apartmentId])
+}
+
+model Due {
+  id          String    @id @default(uuid())
+  apartmentId String
+  apartment   Apartment @relation(fields: [apartmentId], references: [id])
+  amount      Decimal   @db.Decimal(10, 2)
+  currency    String    @default("TRY")
+  month       Int // 1-12
+  year        Int
+  dueDate     DateTime                      // Ödeme son tarihi
+  status      DueStatus @default(PENDING)
+  paidAt      DateTime?
+  overdueDays Int?      @default(0)         // Kaç gün gecikti
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  dekonts     Dekont[]      @relation("DuePrimaryDekont")
+  payments    DuePayment[]
+
+  @@index([apartmentId])
+  @@index([status, dueDate])
+}
+
+enum DueStatus {
+  PENDING
+  PAID
+  OVERDUE
+  WAIVED
+}
+
+model Expense {
+  id         String          @id @default(uuid())
+  buildingId String
+  building   Building        @relation(fields: [buildingId], references: [id])
+  title      String
+  amount     Decimal         @db.Decimal(10, 2)
+  category   ExpenseCategory
+  date       DateTime
+  note       String?
+  receiptUrl String?
+  createdAt  DateTime        @default(now())
+
+  @@index([buildingId])
+}
+
+enum ExpenseCategory {
+  CLEANING
+  ELEVATOR
+  ELECTRICITY
+  WATER
+  INSURANCE
+  REPAIR
+  GARDEN
+  OTHER
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  apartmentId String
+  apartment   Apartment      @relation(fields: [apartmentId], references: [id])
+  userId      String
+  user        User           @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  category    TicketCategory
+  status      TicketStatus   @default(OPEN)
+  updates     TicketUpdate[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([apartmentId])
+  @@index([userId])
+  @@index([status, createdAt])
+}
+
+enum TicketCategory {
+  COMPLAINT
+  REQUEST
+  MALFUNCTION
+  OTHER
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
+model TicketUpdate {
+  id        String   @id @default(uuid())
+  ticketId  String
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+  message   String
+  fromRole  UserRole
+  createdAt DateTime @default(now())
+
+  @@index([ticketId])
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  title     String
+  body      String
+  type      NotificationType
+  isRead    Boolean          @default(false)
+  data      Json?
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+}
+
+enum NotificationType {
+  DUE_REMINDER
+  DUE_PAID
+  TICKET_UPDATE
+  ANNOUNCEMENT
+  SYSTEM
+  DEKONT_RECEIVED
+  DEKONT_MATCHED
+  DEKONT_PAYMENT_APPLIED
+  DEKONT_NEEDS_REVIEW
+}
+
+enum DekontStatus {
+  RECEIVED
+  EXTRACTING
+  EXTRACT_FAILED
+  PARSED
+  PARSE_LOW_CONFIDENCE
+  MATCHING
+  MATCHED
+  MATCH_AMBIGUOUS
+  UNMATCHED
+  PAYMENT_APPLIED
+  PAYMENT_PARTIAL
+  REJECTED
+  RECIPIENT_MISMATCH
+  NEEDS_MANAGER_REVIEW
+}
+
+enum DekontSource {
+  RESIDENT_UPLOAD
+  MANAGER_UPLOAD
+}
+
+model Dekont {
+  id               String        @id @default(uuid())
+  buildingId       String
+  building         Building      @relation(fields: [buildingId], references: [id])
+  apartmentId      String?
+  apartment        Apartment?    @relation(fields: [apartmentId], references: [id])
+  uploadedById     String
+  uploadedBy       User          @relation(fields: [uploadedById], references: [id])
+  dueId            String?
+  due              Due?          @relation("DuePrimaryDekont", fields: [dueId], references: [id], onDelete: SetNull)
+  status           DekontStatus  @default(RECEIVED)
+  source           DekontSource
+  storedPath       String
+  originalFilename String
+  mimeType         String
+  sizeBytes        Int
+  rawText          String?       @db.Text
+  parsedJson       Json?
+  parserProfile    String?
+  parseError       String?
+  recipientVerified Boolean?
+  verificationJson  Json?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  payments DuePayment[]
+
+  @@index([buildingId, createdAt])
+  @@index([uploadedById])
+  @@index([status])
+  @@index([apartmentId])
+}
+
+model DuePayment {
+  id        String   @id @default(uuid())
+  dueId     String
+  due       Due      @relation(fields: [dueId], references: [id], onDelete: Cascade)
+  dekontId  String?
+  dekont    Dekont?  @relation(fields: [dekontId], references: [id], onDelete: SetNull)
+  amount    Decimal  @db.Decimal(12, 2)
+  paidAt    DateTime
+  currency  String   @default("TRY")
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([dueId])
+  @@index([dekontId])
+}
