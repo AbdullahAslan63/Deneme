@@ -21,44 +21,74 @@ aidatpanel/
 │   ├── index.html
 │   ├── assets/
 │   └── ...
-├── mobile/               # Flutter uygulaması
-│   ├── lib/
-│   ├── android/
-│   ├── ios/
-│   ├── pubspec.yaml
-│   └── ...
-└── backend/              # Node.js API
+├── mobile/               # Flutter (production: main.dart, dev: main_dev.dart)
+│   ├── lib/              # ~92 dart; features: auth, buildings, dues, …
+│   ├── android/, ios/
+│   ├── tool/             # i18n_scan, çeviri yardımcıları
+│   └── pubspec.yaml
+└── backend/              # Node.js API (ESM, Express 5)
+    ├── index.js            # Giriş noktası, /api/v1 mount
+    ├── package.json
+    ├── prisma.config.ts
+    ├── prisma/
+    │   ├── schema.prisma
+    │   └── migrations/     # init, deleted_at+password_reset, dekont_system
     ├── src/
+    │   ├── config/db.js    # Prisma 7 + @prisma/adapter-pg
     │   ├── routes/
     │   ├── controllers/
-    │   ├── models/
-    │   ├── middleware/
     │   ├── services/
-    │   └── utils/
-    ├── prisma/
-    │   └── schema.prisma
+    │   ├── middlewares/    # auth, validate (Zod), rateLimit, errorHandler, role
+    │   ├── utils/
+    │   └── validators/     # authValidator (legacy; asıl doğrulama validate.js)
+    ├── test.py             # API smoke / E2E (yerel veya Docker)
     ├── .env.example
-    ├── package.json
-    └── index.js
+    └── nodemon.json
 ```
 
 ---
 
 ## 🖥️ Backend
 
-### Stack
+### Stack (kodda mevcut)
 
-- **Runtime:** Node.js 20+
-- **Framework:** Express.js
-- **ORM:** Prisma
-- **Veritabanı:** PostgreSQL
-- **Auth:** JWT (access token 15dk, refresh token 30 gün)
-- **Email:** Resend (noreply@aidatpanel.com)
-- **Push Notification:** Firebase Admin SDK (FCM)
-- **SMS/WhatsApp:** Twilio (veya Netgsm Türkiye alternatifi)
-- **Abonelik Doğrulama:** RevenueCat REST API (App Store + Google Play receipt validation)
-- **Deployment:** PM2, aynı Contabo VPS
-- **Subdomain:** api.aidatpanel.com (CloudPanel üzerinde reverse proxy)
+| Katman     | Seçim              | Not                                                            |
+| ---------- | ------------------ | -------------------------------------------------------------- |
+| Runtime    | Node.js 20+        | `"type": "module"` (ESM)                                       |
+| Framework  | **Express 5**      | `helmet`, `cors`, `trust proxy`                                |
+| ORM        | **Prisma 7**       | `@prisma/adapter-pg` + `pg` pool                               |
+| Doğrulama  | **Zod**            | `src/middlewares/validate.js`                                  |
+| Veritabanı | PostgreSQL         | 3 migration uygulandı                                          |
+| Auth       | JWT                | Access 15dk, refresh 30g, payload `rv` = `refreshTokenVersion` |
+| Rate limit | express-rate-limit | Genel 100/15dk; auth 5 (prod) / 50 (dev)                       |
+| Email      | Resend (fetch)     | Paket yok; `RESEND_API_KEY` opsiyonel                          |
+| Test       | `test.py`          | Auth, bina, daire, aidat, profil, şifre sıfırlama              |
+
+### Stack (henüz kodda yok — plan)
+
+- **Push:** Firebase Admin SDK (FCM token saklama var, gönderim yok)
+- **SMS/WhatsApp:** Twilio
+- **Abonelik:** RevenueCat webhook
+- **Deployment:** PM2 + `ecosystem.config.js` (repoda yok)
+- **Subdomain:** api.aidatpanel.com
+
+### Backend durum özeti (2026-05)
+
+**Uygulanan route dosyaları:** `authRoutes`, `buildingRoutes`, `apartmentRoutes`, `inviteCodeRoutes`, `meRoutes` — hepsi `/api/v1` altında.
+
+**Şema + migration, API yok:** `Expense`, `Ticket`, `TicketUpdate`, `Notification` (tablolar init migration’da), `Subscription`, `Dekont`, `DuePayment` (dekont migration’ında; OCR/upload route yok).
+
+**Planda olmayan / genişletilmiş özellikler:**
+
+- Giriş: `identifier` ile **e-posta veya telefon** (`login`)
+- Oturum iptali: `User.refreshTokenVersion` + refresh JWT içinde `rv` (logout / şifre değişince artar)
+- **KVKK:** `DELETE /api/v1/me` — soft delete, PII maskeleme; yöneticide aktif bina varsa 409
+- Şifre sıfırlama: 6 karakterlik kod (SHA-256 hash DB’de), Resend opsiyonel; geliştirmede `AIDATPANEL_E2E_RESET_LOG`
+- Bina oluşturma: `totalFloors` × `apartmentsPerFloor` ile daireler (`1A`, `1B`…); `dueAmount` varsa **İstanbul takvimine göre** bulunulan aydan yıl sonuna aidat kayıtları
+- Aidat: `dueDate`, `overdueDays`; `PATCH .../due-amount` + `affectCurrent`
+- Daire: **tek sakin** (`User.apartmentId` @unique); `DELETE .../apartments/:id/resident`
+- Bina: tahsilat alanları (`collectionIban`, `collectionAccountTitle`, …) — dekont Faz 2 için şema hazır
+- Güvenlik: Helmet, CORS (`ALLOWED_ORIGINS`), global hata yakalayıcı, Zod mesajları Türkçe
 
 ### Ortam Değişkenleri (.env)
 
@@ -66,20 +96,23 @@ aidatpanel/
 PORT=4200
 DATABASE_URL=postgresql://aidatpanel:PASSWORD@localhost:5432/aidatpanel
 JWT_SECRET=...
-JWT_REFRESH_SECRET=...
-RESEND_API_KEY=...
-FIREBASE_SERVICE_ACCOUNT_JSON=...
-TWILIO_ACCOUNT_SID=...
-TWILIO_AUTH_TOKEN=...
-TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
-TWILIO_SMS_FROM=+1...
-REVENUECAT_API_KEY=...
-REVENUECAT_WEBHOOK_SECRET=...
+REFRESH_TOKEN_SECRET=...          # .env.example adı (eski dokümanda JWT_REFRESH_SECRET)
+JWT_EXPIRES_IN=15m
+REFRESH_TOKEN_EXPIRES_IN=30d
+ALLOWED_ORIGINS=http://localhost:3000,...
+RESEND_API_KEY=...                # opsiyonel
+RESEND_FROM_EMAIL=...
+PASSWORD_RESET_EXPIRES_MINUTES=60
+AUTH_RATE_LIMIT_MAX=...           # dev/test için
+# FIREBASE_SERVICE_ACCOUNT_JSON=...
+# TWILIO_*, REVENUECAT_* — henüz kullanılmıyor
 ```
 
 ---
 
 ## 🗄️ Veritabanı Şeması (Prisma)
+
+> **Kaynak:** `backend/prisma/schema.prisma` — aşağıdaki blok orijinal plan özetidir; güncel şema farkları için **Şema farkları** bölümüne bakın.
 
 ```prisma
 model User {
@@ -272,216 +305,227 @@ enum NotificationType {
   TICKET_UPDATE
   ANNOUNCEMENT
   SYSTEM
+  // + DEKONT_RECEIVED, DEKONT_MATCHED, DEKONT_PAYMENT_APPLIED, DEKONT_NEEDS_REVIEW (migration)
 }
 ```
+
+### Şema farkları (plan → `schema.prisma`)
+
+| Alan / model                                                                                            | Durum                                                |
+| ------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| `User.refreshTokenVersion`, `User.deletedAt`                                                            | ✅ Oturum iptali + KVKK                              |
+| `User.phone`                                                                                            | ✅ `@unique`                                         |
+| `User` ↔ `Apartment`                                                                                    | ✅ **One-to-one** sakin (planda `residents[]` çoklu) |
+| `PasswordResetToken`                                                                                    | ✅ 6 haneli kod hash                                 |
+| `Building.totalFloors`, `apartmentsPerFloor`, `dueAmount`, `dueDay`, `currency`                         | ✅ Bina + otomatik aidat                             |
+| `Building.collectionIban`, `collectionAccountTitle`, `paymentReferenceTemplate`, `collectionVerifiedAt` | ✅ Dekont doğrulama (API yok)                        |
+| `Due.dueDate`, `Due.overdueDays`                                                                        | ✅ Gecikme hesabı                                    |
+| `Dekont`, `DuePayment`, `DekontStatus`, `DekontSource`                                                  | ✅ Migration; **route yok**                          |
+| `Expense`, `Ticket`, `Notification`, `Subscription`                                                     | ✅ Tablo; **route yok**                              |
 
 ---
 
 ## 🔌 API Endpoint'leri
 
-### Auth
+Tüm canlı route'lar **`/api/v1`** prefix'i ile mount edilir (`backend/index.js`).
+
+Durum: ✅ uygulandı · ⬜ şema/plan var, kod yok · 🔶 kısmen (şema veya token saklama)
+
+### Auth — ✅
+
+| Method | Path                           | Not                                   |
+| ------ | ------------------------------ | ------------------------------------- |
+| POST   | `/api/v1/auth/register`        | Yönetici; `role: MANAGER`             |
+| POST   | `/api/v1/auth/login`           | `identifier` = email **veya** telefon |
+| POST   | `/api/v1/auth/refresh`         | Body: `refreshToken`                  |
+| POST   | `/api/v1/auth/logout`          | Bearer; `refreshTokenVersion++`       |
+| POST   | `/api/v1/auth/join`            | Davet kodu + sakin kaydı              |
+| POST   | `/api/v1/auth/forgot-password` | Resend opsiyonel                      |
+| POST   | `/api/v1/auth/reset-password`  | 6 karakter kod + yeni şifre           |
+
+### Buildings (MANAGER) — ✅
+
+| Method | Path                                       | Not                                                |
+| ------ | ------------------------------------------ | -------------------------------------------------- |
+| GET    | `/api/v1/buildings`                        | Liste                                              |
+| POST   | `/api/v1/buildings`                        | Daire + yıl sonuna aidat (opsiyonel `dueAmount`)   |
+| GET    | `/api/v1/buildings/:id`                    | Detay                                              |
+| PUT    | `/api/v1/buildings/:id`                    | Güncelle                                           |
+| DELETE | `/api/v1/buildings/:id`                    | Sil                                                |
+| GET    | `/api/v1/buildings/:id/dues`               | Query: `month`, `year`, `status`                   |
+| PATCH  | `/api/v1/buildings/:id/due-amount`         | `dueAmount`, `dueDay`, `currency`, `affectCurrent` |
+| PATCH  | `/api/v1/buildings/:id/dues/:dueId/status` | `status`, `paidAt`, `note`                         |
+
+### Apartments (MANAGER) — ✅
+
+| Method | Path                                                    | Not                                |
+| ------ | ------------------------------------------------------- | ---------------------------------- |
+| GET    | `/api/v1/buildings/:buildingId/apartments`              | Sakin dahil                        |
+| POST   | `/api/v1/buildings/:buildingId/apartments`              | Tek daire                          |
+| PUT    | `/api/v1/buildings/:buildingId/apartments/:id`          |                                    |
+| DELETE | `/api/v1/buildings/:buildingId/apartments/:id`          |                                    |
+| DELETE | `/api/v1/buildings/:buildingId/apartments/:id/resident` | Sakini daireden ayır (hesap kalır) |
+| POST   | `/api/v1/apartments/:apartmentId/invite-code`           | Davet kodu üret                    |
+
+### Profile / Me — ✅
+
+| Method | Path                   | Rol                                        |
+| ------ | ---------------------- | ------------------------------------------ |
+| GET    | `/api/v1/me`           | MANAGER, RESIDENT                          |
+| PUT    | `/api/v1/me`           | Profil                                     |
+| DELETE | `/api/v1/me`           | KVKK soft delete                           |
+| PUT    | `/api/v1/me/password`  |                                            |
+| PUT    | `/api/v1/me/language`  |                                            |
+| PUT    | `/api/v1/me/fcm-token` | 🔶 token saklanır, push gönderimi yok      |
+| GET    | `/api/v1/me/dues`      | RESIDENT; query: `status`, `year`, `month` |
+
+### Planlanan — ⬜ (şema veya dokümantasyon var)
 
 ```
-POST   /api/auth/register          # Yönetici kaydı
-POST   /api/auth/login             # Giriş
-POST   /api/auth/refresh           # Token yenile
-POST   /api/auth/logout            # Çıkış
-POST   /api/auth/join              # Sakin davet koduyla kaydolur
-POST   /api/auth/forgot-password   # Şifre sıfırlama maili
-POST   /api/auth/reset-password    # Yeni şifre set
-```
+POST   /api/v1/buildings/:id/dues/bulk          # Yerine: bina oluşturma + due-amount
+PATCH  /api/v1/dues/:id/status                  # Yerine: .../buildings/:id/dues/:dueId/status
 
-### Buildings (Yönetici only)
-
-```
-GET    /api/buildings              # Yöneticinin tüm apartmanları
-POST   /api/buildings              # Yeni apartman ekle
-GET    /api/buildings/:id          # Apartman detayı
-PUT    /api/buildings/:id          # Güncelle
-DELETE /api/buildings/:id          # Sil
-```
-
-### Apartments (Yönetici only)
-
-```
-GET    /api/buildings/:id/apartments          # Apartmandaki daireler
-POST   /api/buildings/:id/apartments          # Daire ekle
-PUT    /api/buildings/:buildingId/apartments/:id
-DELETE /api/buildings/:buildingId/apartments/:id
-POST   /api/apartments/:id/invite-code        # Davet kodu üret
-```
-
-### Dues (Aidat)
-
-```
-GET    /api/buildings/:id/dues               # Tüm aidat listesi (Yönetici)
-POST   /api/buildings/:id/dues/bulk          # Toplu aidat oluştur (Yönetici)
-PATCH  /api/dues/:id/status                  # Ödendi/ödenmedi işaretle (Yönetici)
-GET    /api/me/dues                          # Kendi aidat geçmişim (Sakin)
-```
-
-### Expenses (Gider)
-
-```
-GET    /api/buildings/:id/expenses           # Gider listesi (Yönetici)
-POST   /api/buildings/:id/expenses           # Gider ekle (Yönetici)
-PUT    /api/expenses/:id                     # Güncelle (Yönetici)
-DELETE /api/expenses/:id                     # Sil (Yönetici)
-GET    /api/buildings/:id/expenses/summary   # Aylık özet (Yönetici)
-```
-
-### Tickets (Arıza/Talep)
-
-```
-GET    /api/buildings/:id/tickets            # Tüm talepler (Yönetici)
-GET    /api/tickets/:id                      # Talep detayı
-POST   /api/apartments/:id/tickets           # Yeni talep (Sakin)
-POST   /api/tickets/:id/updates             # Güncelleme ekle (Yönetici)
-PATCH  /api/tickets/:id/status              # Durum değiştir (Yönetici)
-GET    /api/me/tickets                       # Kendi taleplerim (Sakin)
-```
-
-### Notifications
-
-```
-GET    /api/notifications                    # Bildirimlerim
-PATCH  /api/notifications/:id/read           # Okundu işaretle
-PATCH  /api/notifications/read-all           # Tümünü oku
-PUT    /api/me/fcm-token                     # FCM token güncelle
-```
-
-### Reports (Yönetici only)
-
-```
-GET    /api/buildings/:id/reports/monthly    # Aylık rapor (PDF)
-GET    /api/buildings/:id/reports/summary    # Özet istatistik
-```
-
-### Subscription
-
-```
-POST   /api/subscription/webhook/revenuecat  # RevenueCat webhook (ödeme olayları)
-GET    /api/me/subscription                  # Abonelik durumum
-```
-
-### Profile
-
-```
-GET    /api/me                               # Profil bilgisi
-PUT    /api/me                               # Güncelle
-PUT    /api/me/password                      # Şifre değiştir
-PUT    /api/me/language                      # Dil değiştir
+GET/POST/PUT/DELETE  .../expenses               # Gider
+GET/POST/PATCH       .../tickets, /me/tickets   # Arıza/talep
+GET/PATCH            /api/v1/notifications    # Bildirim listesi
+GET                  /api/v1/me/subscription
+POST                 /api/v1/subscription/webhook/revenuecat
+GET                  /api/v1/buildings/:id/reports/...
+POST                 /api/v1/.../dekonts        # Dekont yükleme + OCR (Faz 2)
 ```
 
 ---
 
 ## 📱 Flutter Uygulaması
 
-### pubspec.yaml — Temel Paketler
+**Sürüm:** `0.1.2+1778674159` · **SDK:** Dart `^3.11.5` · **~92** aktif `.dart` dosyası (`lib/`)
+
+### Stack (kodda mevcut)
+
+| Katman   | Seçim                                          | Not                                                                                             |
+| -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Mimari   | Clean Architecture                             | `data` / `domain` / `presentation` (kısmi; tüm feature’larda domain yok)                        |
+| State    | **flutter_riverpod**                           | `StateNotifier` + `Provider`; `riverpod_annotation` pubspec’te var, **kodda kullanılmıyor**     |
+| Router   | **go_router**                                  | Auth redirect; 8 rota                                                                           |
+| Ağ       | **dio** + `DioClient`                          | JWT interceptor, 401’de refresh, ayrı `_refreshDio`                                             |
+| Depolama | **flutter_secure_storage**                     | access/refresh token, dil, FCM anahtarı                                                         |
+| i18n     | **Slang 3**                                    | `strings_tr.i18n.json` / `strings_en.i18n.json` → `strings.g.dart`                              |
+| UI       | Material 3                                     | `AppColors`, `AppTypography` (Nunito **adı** tanımlı; font asset pubspec’te yok → sistem fontu) |
+| Yardımcı | `share_plus`, `package_info_plus`, `equatable` | Davet kodu paylaşımı, sürüm etiketi                                                             |
+
+### Stack (henüz entegre değil)
+
+| Plan                                    | Durum                                                                                                                                   |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `purchases_flutter` (RevenueCat)        | pubspec’te **yok** (yalnızca Android proguard yorumu)                                                                                   |
+| `cached_network_image`, `shimmer`       | pubspec’te **yok**                                                                                                                      |
+| `freezed` / `json_serializable` üretimi | pubspec dev’de var; modeller **manuel** `fromJson`                                                                                      |
+| Firebase                                | `firebase_core` / `firebase_messaging` bağımlılık var; **`main.dart` içinde `Firebase.initializeApp` yok**, `firebase_options.dart` yok |
+| FCM sunucuya gönderim                   | `SecureStorage` + `ApiConstants.fcmToken` hazır; kayıt akışı bağlanmamış                                                                |
+
+### Giriş noktaları
+
+| Dosya               | Amaç                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------ |
+| `lib/main.dart`     | Production — gerçek API (`https://api.aidatpanel.com`)                               |
+| `lib/main_dev.dart` | Mock repository override; sağ üst **DEV** rozeti; `flutter run -t lib/main_dev.dart` |
+
+### Mobil durum özeti (2026-05)
+
+**GoRouter rotaları:** `/` splash → oturum kurtarma → `/login` \| `/register` \| `/join` \| `/forgot-password` \| `/reset-password` → `/manager-dashboard` \| `/resident-dashboard`
+
+**Yönetici sekmeleri (4 — plan’daki 5 değil):** Ana Sayfa · Binalar · Aidat · Ayarlar  
+_(Giderler / Bildirimler ayrı tab değil; ayarlarda “yakında”)_
+
+**Sakin sekmeleri (4):** Ana Sayfa · Aidatlarım · Talepler _(placeholder metin)_ · Ayarlar
+
+**Planda olmayan / genişletilmiş:**
+
+- `main_dev.dart` + `dev/dev_mocks.dart` (sunucusuz UI)
+- `SystemNavigatorBridge` — geri tuşu uygulamayı arka plana alır (çıkış yok)
+- `FriendlyErrorScreen` + `ToastOverlay` — global hata ve snack benzeri bildirim
+- `building_residents_screen` — çoklu daire seçimi, toplu davet, daire CRUD, sakin çıkarma
+- `cities_data.dart` — bina formu şehir listesi
+- `ApiConstants` — Faz 2 endpoint sabitleri önceden tanımlı (backend henüz yok)
+- Aidat özeti — yönetici ana sayfada tüm binaların aidatlarından tahsilat oranı hesabı
+- `tool/` — `i18n_scan`, `check_translations`, `add_translation`
+
+### pubspec.yaml — Gerçek bağımlılıklar (özet)
 
 ```yaml
 dependencies:
-  flutter:
-    sdk: flutter
-
-  # State Management
   flutter_riverpod: ^2.5.0
-  riverpod_annotation: ^2.3.0
-
-  # Navigation
   go_router: ^13.0.0
-
-  # Network
   dio: ^5.4.0
   flutter_secure_storage: ^9.0.0
-
-  # i18n
-  flutter_localizations:
-    sdk: flutter
-  intl: ^0.19.0
-
-  # Firebase
-  firebase_core: ^3.0.0
+  slang / slang_flutter: ^3.30.0
+  firebase_core: ^3.0.0          # başlatılmıyor
   firebase_messaging: ^15.0.0
-
-  # In-App Purchase (RevenueCat)
-  purchases_flutter: ^7.0.0
-
-  # UI
-  cached_network_image: ^3.3.0
-  shimmer: ^3.0.0
-
-  # Utils
-  equatable: ^2.0.5
-  json_annotation: ^4.8.1
-  freezed_annotation: ^2.4.0
+  equatable, json_annotation, freezed_annotation  # üretim kullanılmıyor
+  share_plus, package_info_plus
 
 dev_dependencies:
-  build_runner: ^2.4.0
-  riverpod_generator: ^2.3.0
-  freezed: ^2.4.0
-  json_serializable: ^6.7.0
+  build_runner, json_serializable, freezed, flutter_launcher_icons, flutter_lints
 ```
 
-### Flutter Klasör Yapısı
+### Flutter klasör yapısı (gerçek)
 
 ```
 mobile/lib/
 ├── main.dart
-├── firebase_options.dart
+├── main_dev.dart
+├── dev/dev_mocks.dart
 ├── core/
-│   ├── constants/
-│   │   ├── api_constants.dart      # Base URL, endpoint'ler
-│   │   └── app_constants.dart
-│   ├── theme/
-│   │   ├── app_theme.dart
-│   │   ├── app_colors.dart
-│   │   └── app_typography.dart
-│   ├── router/
-│   │   └── app_router.dart         # GoRouter tanımları
-│   ├── network/
-│   │   ├── dio_client.dart         # Interceptor'lar, token refresh
-│   │   └── api_exception.dart
-│   ├── storage/
-│   │   └── secure_storage.dart     # JWT token saklama
-│   └── utils/
-│       ├── date_utils.dart
-│       └── currency_utils.dart
+│   ├── constants/          api_constants.dart, app_constants.dart
+│   ├── theme/              app_colors, app_typography, app_theme, app_sizes
+│   ├── router/app_router.dart
+│   ├── network/            dio_client.dart, api_exception.dart
+│   ├── storage/secure_storage.dart
+│   ├── providers/locale_provider.dart
+│   ├── platform/system_navigator_bridge.dart
+│   └── utils/input_validators.dart
 ├── l10n/
-│   ├── app_tr.arb                  # Türkçe metinler
-│   └── app_en.arb                  # İngilizce metinler
+│   ├── i18n.yaml
+│   ├── strings_tr.i18n.json, strings_en.i18n.json
+│   └── strings.g.dart      # üretilmiş
 ├── features/
-│   ├── auth/
-│   │   ├── data/
-│   │   ├── domain/
-│   │   └── presentation/
-│   │       ├── login_screen.dart
-│   │       ├── register_screen.dart
-│   │       └── join_screen.dart    # Sakin davet kodu girişi
-│   ├── dashboard/
-│   │   └── presentation/
-│   │       ├── manager_dashboard.dart
-│   │       └── resident_dashboard.dart
-│   ├── buildings/
-│   │   ├── data/
-│   │   ├── domain/
-│   │   └── presentation/
-│   ├── apartments/
-│   ├── dues/
-│   ├── expenses/
-│   ├── tickets/
-│   ├── notifications/
-│   ├── reports/
-│   └── subscription/
-│       └── presentation/
-│           └── paywall_screen.dart  # RevenueCat paywall
+│   ├── auth/               ✅ ekranlar + AuthRepository + splash bootstrap
+│   ├── dashboard/          ✅ manager + resident dashboard
+│   ├── buildings/          ✅ CRUD, davet kodu, residents ekranı
+│   ├── apartments/         ✅ data/UI (buildings akışına gömülü)
+│   ├── dues/               ✅ manager_dues_tab, resident_dues_tab
+│   ├── profile/            ✅ şifre, hesap silme (API)
+│   ├── expenses/           ⬜ yalnızca .gitkeep iskelet
+│   ├── tickets/            ⬜ iskelet
+│   ├── notifications/      ⬜ iskelet
+│   ├── reports/            ⬜ iskelet
+│   └── subscription/       ⬜ iskelet
 └── shared/
-    ├── widgets/
-    │   ├── loading_widget.dart
-    │   ├── error_widget.dart
-    │   └── empty_state_widget.dart
-    └── models/
+    ├── widgets/            settings_tab, empty_state, friendly_error, toast, …
+    ├── providers/navigation_provider.dart
+    └── utils/auth_validators.dart
+
+mobile/test/                 auth_validators_test.dart, widget_test.dart (şablon)
+mobile/tool/                 i18n_scan, check_translations, add_translation
 ```
+
+### Feature → API eşlemesi
+
+| Feature              | UI  | Backend API | Not                                    |
+| -------------------- | --- | ----------- | -------------------------------------- |
+| Auth                 | ✅  | ✅          | login `identifier`, join, forgot/reset |
+| Binalar              | ✅  | ✅          | liste, ekle, düzenle, sil              |
+| Daireler             | ✅  | ✅          | nested `/buildings/:id/apartments`     |
+| Davet kodu           | ✅  | ✅          | paylaşım (`share_plus`)                |
+| Aidat (yönetici)     | ✅  | ✅          | filtre, durum, `due-amount`            |
+| Aidat (sakin)        | ✅  | ✅          | `GET /me/dues`                         |
+| Profil / dil / şifre | ✅  | ✅          | `SettingsTab`                          |
+| Hesap silme          | ✅  | ✅          | KVKK dialog                            |
+| Giderler             | ⬜  | ⬜          |                                        |
+| Talepler             | 🔶  | ⬜          | sakin “Talepler” sekmesi boş           |
+| Bildirimler          | 🔶  | ⬜          | ayarlarda coming soon                  |
+| Abonelik / Paywall   | ⬜  | ⬜          |                                        |
+| Dekont yükleme       | ⬜  | ⬜          |                                        |
 
 ---
 
@@ -689,34 +733,62 @@ npx prisma migrate deploy
 
 ### Faz 1 — Çekirdek (MVP)
 
-Backend (`/api/v1`) durumu — tam liste için `FLUTTER-BACKEND.md` ve `prisma/schema.prisma`:
+#### Backend (`/api/v1`)
 
-- [x] Auth (register, login, refresh/logout, JWT + `refreshTokenVersion`, davet kodu ile katılım, **profil `/me`**, **şifre değiştir**, **forgot/reset şifre** Resend ile opsiyonel)
-- [x] Bina ve daire CRUD
-- [x] Davet kodu sistemi
-- [x] Aylık aidat: bina oluşturma / `due-amount` ile üretim + **durum güncelleme** (`PATCH .../dues/:dueId/status`) — ayrı “toplu bulk” endpoint yok (bilinçli Faz 1 sözleşmesi)
-- [x] Sakin: kendi aidat durumunu görme (`GET /me/dues`)
-- [-] FCM push notification altyapısı — **backend:** `PUT /me/fcm-token` ile token saklama hazır; **Admin SDK ile gönderim** henüz yok (Faz 1.1 / Faz 2)
-- [ ] RevenueCat abonelik entegrasyonu (iOS + Android) — backend webhook / doğrulama henüz yok
-- [x] Landing page (web) — `web/` / dağıtım ayrı iş
+Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `backend/test.py`.
+
+- [x] Auth: register, login (email/telefon), refresh, logout, join, forgot/reset şifre
+- [x] JWT + `refreshTokenVersion` (`rv` claim); logout ve şifre değişiminde sürüm artışı
+- [x] Profil: `GET/PUT /me`, şifre, dil, **KVKK `DELETE /me`**
+- [x] Bina CRUD + kat/daire şablonu ile otomatik daire oluşturma
+- [x] Daire CRUD + **sakini daireden ayırma** (`DELETE .../resident`)
+- [x] Davet kodu (`POST .../invite-code`)
+- [x] Aidat: bina kurulumunda yıl sonuna kayıt; `PATCH due-amount`; `GET .../dues`; `PATCH .../status`; `GET /me/dues`
+- [x] Zod doğrulama, rate limit, Helmet, merkezi hata yanıtı
+- [x] `test.py` smoke testleri
+- [-] FCM: `PUT /me/fcm-token` ✅ · Admin SDK gönderim ⬜
+- [ ] RevenueCat webhook / `GET /me/subscription` ⬜
+- [ ] Landing page (`web/`) — repoda `web/` klasörü henüz yok
+
+#### Mobil (Flutter)
+
+- [x] Auth akışı: splash (oturum kurtarma + timeout), login, register, join, forgot/reset
+- [x] GoRouter + rol bazlı dashboard yönlendirme
+- [x] Dio: Bearer, refresh token, Türkçe `ApiException` mesajları
+- [x] Yönetici: bina listesi/ekleme/düzenleme/silme, daire & sakin yönetimi, davet kodu
+- [x] Yönetici: aidat listesi, filtre, ödendi/bekliyor/gecikmiş, aidat tutarı güncelleme
+- [x] Sakin: aidatlarım sekmesi (`GET /me/dues`)
+- [x] Ayarlar: profil kartı, şifre değiştir, dil (TR/EN, Slang + secure storage), hesap silme
+- [x] i18n Slang (TR/EN); `main_dev` mock modu
+- [x] Tasarım token’ları: renk, tipografi, 56dp buton, `NavigationBar`
+- [-] Firebase / FCM: bağımlılık var, **init ve token upload akışı yok**
+- [ ] RevenueCat / paywall ⬜
+- [ ] Giderler, bildirimler, raporlar UI ⬜
+- [ ] Sakin talepler sekmesi (API + UI) ⬜ — şu an placeholder
+
+**Faz 1 dışı kalan plan maddeleri (bilinçli veya ertelenmiş):**
+
+- [ ] `POST .../dues/bulk` — yerine bina create + `due-amount` akışı
+- [ ] `ecosystem.config.js` / PM2 repoda yok
+- [ ] `docker-compose.yml`, `scripts/docker-test.sh` — `.env.example`’da referans var, repoda henüz yok
 
 ### Faz 2 — Tamamlama
 
-- [ ] Dekont yükleyerek ödeme durumunu kontrol/değiştirme (OCR)
-- [ ] 10 banka (Ziraat, Halk, Vakıf, İş, Garanti, Finans, Kuveyt, Şeker, Yapıkredi, QNB, Akbank)
-- [ ] Alıcı, gönderen, tarih, tutar, banka, sorgu no, IBAN (opsiyonel)
+**Dekont / ödeme doğrulama**
 
----
+- [x] Veritabanı: `Dekont`, `DuePayment`, bina tahsilat IBAN alanları, bildirim enum’ları (migration `20260515120000_dekont_system`)
+- [ ] Dekont upload API + dosya depolama
+- [ ] OCR / banka profilleri (10 banka listesi planı geçerli)
+- [ ] Alıcı, gönderen, tarih, tutar, banka, sorgu no, IBAN eşleştirme
 
-- [ ] Gider kaydı ve kategorileme
-- [ ] Arıza/talep sistemi (Ticket)
-- [ ] Yönetici → Sakin bildirim gönderme
+**Diğer**
 
----
-
+- [ ] Gider API (`Expense` tablosu hazır)
+- [ ] Arıza/talep API (`Ticket`, `TicketUpdate` hazır)
+- [ ] Bildirim listesi + okundu + yöneticiden duyuru (`Notification` tablosu hazır)
 - [ ] WhatsApp aidat hatırlatma
 - [ ] PDF rapor (aylık özet)
-- [x] i18n (TR/EN)
+- [x] i18n (TR/EN) — mobil: Slang; ayarlar + ekran metinleri
 
 ### Faz 3 — Büyüme
 
@@ -730,15 +802,15 @@ Backend (`/api/v1`) durumu — tam liste için `FLUTTER-BACKEND.md` ve `prisma/s
 
 ## ⚙️ Teknik Kararlar ve Gerekçeleri
 
-| Karar            | Seçim        | Gerekçe                                     |
-| ---------------- | ------------ | ------------------------------------------- |
-| State management | Riverpod     | OkulOptik'te zaten biliniyor                |
-| Navigation       | GoRouter     | Flutter best practice, deep link desteği    |
-| ORM              | Prisma       | Type-safe, migration yönetimi kolay         |
-| Abonelik         | RevenueCat   | iOS + Android tek entegrasyon               |
-| Push             | Firebase FCM | Cross-platform standart                     |
-| WhatsApp         | Twilio       | Sandbox ile hızlı test, Türkiye desteği var |
-| i18n             | Flutter ARB  | Flutter native çözüm                        |
+| Karar            | Seçim            | Gerekçe                                     |
+| ---------------- | ---------------- | ------------------------------------------- |
+| State management | Riverpod         | OkulOptik'te zaten biliniyor                |
+| Navigation       | GoRouter         | Flutter best practice, deep link desteği    |
+| ORM              | Prisma           | Type-safe, migration yönetimi kolay         |
+| Abonelik         | RevenueCat       | iOS + Android tek entegrasyon               |
+| Push             | Firebase FCM     | Cross-platform standart                     |
+| WhatsApp         | Twilio           | Sandbox ile hızlı test, Türkiye desteği var |
+| i18n             | **Slang** (JSON) | ARB yerine `strings_*.i18n.json` + codegen  |
 
 ---
 
@@ -884,29 +956,14 @@ ElevatedButton(
 
 ### Navigasyon
 
-**Her zaman BottomNavigationBar kullan — hamburger menü yasak.**
+**Material `NavigationBar` (ikon + etiket). Hamburger menü yok.**
 
-```dart
-// Yönetici tab'ları
-// 1. Ana Sayfa (Apartments overview)
-// 2. Aidat
-// 3. Giderler
-// 4. Bildirimler
-// 5. Profil
+| Rol      | Sekmeler (uygulama)                         | Plan dokümanı (hedef)             |
+| -------- | ------------------------------------------- | --------------------------------- |
+| Yönetici | Ana Sayfa · Binalar · Aidat · Ayarlar       | + Giderler · Bildirimler ayrı tab |
+| Sakin    | Ana Sayfa · Aidatlarım · Talepler · Ayarlar | Talepler API’siz placeholder      |
 
-// Sakin tab'ları
-// 1. Aidatlarım
-// 2. Taleplerim
-// 3. Bildirimler
-// 4. Profil
-
-// Her tab: ikon + yazı birlikte gösterilmeli, sadece ikon yok
-BottomNavigationBarItem(
-  icon: Icon(Icons.home_outlined),
-  activeIcon: Icon(Icons.home),
-  label: 'Ana Sayfa', // Yazı her zaman görünür
-)
-```
+Alt ekranlar `Navigator.push` ile: `AddBuildingScreen`, `BuildingResidentsScreen`, `InviteCodeScreen` (GoRouter dışı stack).
 
 ---
 
@@ -1022,6 +1079,17 @@ Her ekran tamamlanmadan önce şunlar kontrol edilmeli:
 
 - OkulOptik ile **aynı PostgreSQL instance** kullanılabilir ama **ayrı veritabanı** (`aidatpanel` adıyla) oluşturulmalı
 - Port çakışması olmaması için OkulOptik portunu kontrol et, 4200 müsait değilse 4201 kullan
-- Tüm API route'ları `/api/v1/` prefix'i ile başlamalı (ileride versiyonlama için)
-- KVKK uyumu için kullanıcı verisi silme endpoint'i (`DELETE /api/me`) faz 1'de yazılmalı
+- Tüm API route'ları `/api/v1/` prefix'i ile başlamalı — **uygulandı** (`backend/index.js`)
+- [x] KVKK: `DELETE /api/v1/me` — soft delete, yönetici aktif bina varken 409
+- Aidat son ödeme günü: `src/utils/trDueDate.js` (Europe/Istanbul)
+- Yerel test: `cd backend && npm run dev` · smoke: `python test.py` (API `http://127.0.0.1:4200/api/v1`)
+- Prisma: `npx prisma migrate deploy` (3 migration)
 - Apple App Store'da "Kids Category" seçilmemeli, subscription için "Finance" kategorisi uygundur
+
+### Backend migration geçmişi
+
+| Migration                                       | İçerik                                                  |
+| ----------------------------------------------- | ------------------------------------------------------- |
+| `20260510005756_init`                           | Tüm çekirdek tablolar + `dueDate` / bina aidat ayarları |
+| `20260510023405_user_deleted_at_password_reset` | `deletedAt`, `PasswordResetToken`                       |
+| `20260515120000_dekont_system`                  | `Dekont`, `DuePayment`, bina tahsilat kolonları         |
