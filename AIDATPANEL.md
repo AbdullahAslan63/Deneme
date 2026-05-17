@@ -62,11 +62,12 @@ aidatpanel/
 | Auth       | JWT                | Access 15dk, refresh 30g, payload `rv` = `refreshTokenVersion` |
 | Rate limit | express-rate-limit | Genel 100/15dk; auth 5 (prod) / 50 (dev)                       |
 | Email      | Resend (fetch)     | Paket yok; `RESEND_API_KEY` opsiyonel                          |
-| Test       | `test.py`          | Auth, bina, daire, aidat, profil, şifre sıfırlama              |
+| Test       | `test.py`          | Faz 1 + Faz 2A: gider, talep, bildirim, duyuru, yetki          |
+| Push       | **Firebase Admin** | `config/firebase.js`, `pushService.js`; production’da zorunlu  |
 
 ### Stack (henüz kodda yok — plan)
 
-- **Push:** Firebase Admin SDK (FCM token saklama var, gönderim yok)
+- **Push (mobil):** Flutter `Firebase.initializeApp` + token upload akışı ⬜ (`PLAN.md` B0–B1)
 - **SMS/WhatsApp:** Twilio
 - **Abonelik:** RevenueCat webhook
 - **Deployment:** PM2 + `ecosystem.config.js` (repoda yok)
@@ -74,9 +75,11 @@ aidatpanel/
 
 ### Backend durum özeti (2026-05)
 
-**Uygulanan route dosyaları:** `authRoutes`, `buildingRoutes`, `apartmentRoutes`, `inviteCodeRoutes`, `meRoutes` — hepsi `/api/v1` altında.
+**Uygulanan route dosyaları (`/api/v1`):** `authRoutes`, `buildingRoutes` (dues, expenses, tickets, announcements), `apartmentRoutes`, `inviteCodeRoutes`, `meRoutes` (`GET /tickets`), `notificationRoutes`, `ticketRoutes`, `apartmentTicketRoutes`, `expenseRoutes`.
 
-**Şema + migration, API yok:** `Expense`, `Ticket`, `TicketUpdate`, `Notification` (tablolar init migration’da), `Subscription`, `Dekont`, `DuePayment` (dekont migration’ında; OCR/upload route yok).
+**Faz 2A servisleri:** `notificationService` (`createForUsers` + liste/okundu), `ticketService`, `expenseService`, `announcementService`, `pushService`.
+
+**Şema var, API yok:** `Subscription`, `Dekont`, `DuePayment` (dekont migration; OCR/upload route yok).
 
 **Planda olmayan / genişletilmiş özellikler:**
 
@@ -321,7 +324,8 @@ enum NotificationType {
 | `Building.collectionIban`, `collectionAccountTitle`, `paymentReferenceTemplate`, `collectionVerifiedAt` | ✅ Dekont doğrulama (API yok)                        |
 | `Due.dueDate`, `Due.overdueDays`                                                                        | ✅ Gecikme hesabı                                    |
 | `Dekont`, `DuePayment`, `DekontStatus`, `DekontSource`                                                  | ✅ Migration; **route yok**                          |
-| `Expense`, `Ticket`, `Notification`, `Subscription`                                                     | ✅ Tablo; **route yok**                              |
+| `Expense`, `Ticket`, `TicketUpdate`, `Notification`                                                     | ✅ Tablo + **REST API (Faz 2A)**                     |
+| `Subscription`                                                                                            | ✅ Tablo; **route yok**                              |
 
 ---
 
@@ -355,6 +359,42 @@ Durum: ✅ uygulandı · ⬜ şema/plan var, kod yok · 🔶 kısmen (şema veya
 | GET    | `/api/v1/buildings/:id/dues`               | Query: `month`, `year`, `status`                   |
 | PATCH  | `/api/v1/buildings/:id/due-amount`         | `dueAmount`, `dueDay`, `currency`, `affectCurrent` |
 | PATCH  | `/api/v1/buildings/:id/dues/:dueId/status` | `status`, `paidAt`, `note`                         |
+| GET    | `/api/v1/buildings/:id/expenses`           | Query: `month`, `year`, `category`               |
+| GET    | `/api/v1/buildings/:id/expenses/summary`   | Query: `month`, `year` (**zorunlu**)             |
+| POST   | `/api/v1/buildings/:id/expenses`           | Gider kaydı                                      |
+| GET    | `/api/v1/buildings/:id/tickets`             | Query: `status`, `category`                        |
+| POST   | `/api/v1/buildings/:id/announcements`      | `title`, `body` → tüm aktif sakinlere            |
+
+### Expenses (MANAGER) — ✅
+
+| Method | Path | Not |
+| ------ | ---- | --- |
+| GET | `/api/v1/buildings/:buildingId/expenses` | Liste (`date` desc) |
+| GET | `/api/v1/buildings/:buildingId/expenses/summary` | Kategori toplamları + `totalAmount` |
+| POST | `/api/v1/buildings/:buildingId/expenses` | `title`, `amount`, `category`, `date`, `note?`, `receiptUrl?` |
+| PUT | `/api/v1/expenses/:expenseId` | Kısmi güncelleme; bina sahibi |
+| DELETE | `/api/v1/expenses/:expenseId` | Kalıcı silme |
+
+### Tickets — ✅
+
+| Method | Path | Rol |
+| ------ | ---- | --- |
+| GET | `/api/v1/buildings/:buildingId/tickets` | MANAGER |
+| GET | `/api/v1/me/tickets` | RESIDENT |
+| GET | `/api/v1/tickets/:ticketId` | MANAGER veya talep sahibi |
+| POST | `/api/v1/apartments/:apartmentId/tickets` | RESIDENT (kendi dairesi) |
+| POST | `/api/v1/tickets/:ticketId/updates` | MANAGER |
+| PATCH | `/api/v1/tickets/:ticketId/status` | MANAGER |
+
+### Notifications — ✅
+
+| Method | Path | Rol |
+| ------ | ---- | --- |
+| GET | `/api/v1/notifications` | MANAGER, RESIDENT — `?unreadOnly&limit&cursor` |
+| PATCH | `/api/v1/notifications/:id/read` | Alıcı |
+| PATCH | `/api/v1/notifications/read-all` | Alıcı |
+
+Otomatik: `TICKET_UPDATE` (talep notu / durum), `ANNOUNCEMENT` (yönetici duyuru). E2E seed: `POST /notifications/_e2e/seed` yalnızca `AIDATPANEL_E2E=1`.
 
 ### Apartments (MANAGER) — ✅
 
@@ -376,18 +416,15 @@ Durum: ✅ uygulandı · ⬜ şema/plan var, kod yok · 🔶 kısmen (şema veya
 | DELETE | `/api/v1/me`           | KVKK soft delete                           |
 | PUT    | `/api/v1/me/password`  |                                            |
 | PUT    | `/api/v1/me/language`  |                                            |
-| PUT    | `/api/v1/me/fcm-token` | 🔶 token saklanır, push gönderimi yok      |
+| PUT    | `/api/v1/me/fcm-token` | Token saklama; push gönderimi backend Faz 2A ✅ |
 | GET    | `/api/v1/me/dues`      | RESIDENT; query: `status`, `year`, `month` |
+| GET    | `/api/v1/me/tickets`   | RESIDENT — kendi talepleri |
 
 ### Planlanan — ⬜ (şema veya dokümantasyon var)
 
 ```
 POST   /api/v1/buildings/:id/dues/bulk          # Yerine: bina oluşturma + due-amount
 PATCH  /api/v1/dues/:id/status                  # Yerine: .../buildings/:id/dues/:dueId/status
-
-GET/POST/PUT/DELETE  .../expenses               # Gider
-GET/POST/PATCH       .../tickets, /me/tickets   # Arıza/talep
-GET/PATCH            /api/v1/notifications    # Bildirim listesi
 GET                  /api/v1/me/subscription
 POST                 /api/v1/subscription/webhook/revenuecat
 GET                  /api/v1/buildings/:id/reports/...
@@ -593,20 +630,20 @@ Kullanım senaryoları:
 - Arıza talebi güncellemesi (yönetici not eklediğinde)
 - Duyurular (yöneticiden tüm sakine)
 
-```javascript
-// FCM gönderme servisi (backend)
-// services/notification.service.js
-const sendPushNotification = async (fcmToken, title, body, data = {}) => {
-  const message = {
-    token: fcmToken,
-    notification: { title, body },
-    data,
-    android: { priority: "high" },
-    apns: { payload: { aps: { sound: "default" } } },
-  };
-  await admin.messaging().send(message);
-};
-```
+**Backend (Faz 2A — uygulandı):** `src/config/firebase.js` (`initFirebase`), `src/services/pushService.js` (`sendToToken`), `notificationService.createForUsers` her DB kaydından sonra FCM dener. Production’da `FIREBASE_SERVICE_ACCOUNT_JSON` yoksa süreç başlamaz; development’ta push atlanır (DB kaydı oluşur).
+
+### FCM `data` payload (tüm değerler string)
+
+| Anahtar | Örnek | Açıklama |
+|---------|--------|----------|
+| `type` | `TICKET_UPDATE` | `NotificationType` enum |
+| `notificationId` | UUID | Okundu / detay |
+| `ticketId` | UUID | Talep deep link (talep bildirimlerinde) |
+| `buildingId` | UUID | Bina bağlamı |
+| `status` | `IN_PROGRESS` | Talep durumu (opsiyonel) |
+| `route` | `/resident-dashboard` | GoRouter kısayolu |
+
+`notification` (title/body) FCM `notification` alanında; `data` deep link için. Ayrıntılı plan: [`PLAN.md`](PLAN.md).
 
 ### WhatsApp (Twilio)
 
@@ -746,7 +783,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 - [x] Aidat: bina kurulumunda yıl sonuna kayıt; `PATCH due-amount`; `GET .../dues`; `PATCH .../status`; `GET /me/dues`
 - [x] Zod doğrulama, rate limit, Helmet, merkezi hata yanıtı
 - [x] `test.py` smoke testleri
-- [-] FCM: `PUT /me/fcm-token` ✅ · Admin SDK gönderim ⬜
+- [x] FCM: `PUT /me/fcm-token` + Admin SDK gönderim (`pushService`, production zorunlu)
 - [ ] RevenueCat webhook / `GET /me/subscription` ⬜
 - [ ] Landing page (`web/`) — repoda `web/` klasörü henüz yok
 
@@ -783,12 +820,202 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 **Diğer**
 
-- [ ] Gider API (`Expense` tablosu hazır)
-- [ ] Arıza/talep API (`Ticket`, `TicketUpdate` hazır)
-- [ ] Bildirim listesi + okundu + yöneticiden duyuru (`Notification` tablosu hazır)
+- [x] Gider API (`Expense`) — **Faz 2A backend ✅**
+- [x] Arıza/talep API (`Ticket`, `TicketUpdate`) — **Faz 2A backend ✅**
+- [x] Bildirim listesi + okundu + yönetici duyuru + FCM — **Faz 2A backend ✅** (mobil UI ⬜)
 - [ ] WhatsApp aidat hatırlatma
 - [ ] PDF rapor (aylık özet)
 - [x] i18n (TR/EN) — mobil: Slang; ayarlar + ekran metinleri
+
+---
+
+## 📋 Faz 2A — Gider, Talep, Bildirim + Firebase FCM
+
+> **Ayrıntılı aşamalı plan:** [`PLAN.md`](PLAN.md) (backend **A0–A6 ✅**, Flutter B0–B6, FCM **zorunlu**).
+
+**Hedef:** Expense / Ticket / Notification REST API; **Firebase Admin push zorunlu**; Flutter’da FCM + bildirim/talep/gider ekranları implementasyona hazır.
+
+**Kapsam dışı (bu sprint):** Dekont/OCR, `receiptUrl` dosya upload, RevenueCat kilidi, WhatsApp/SMS, PDF rapor.
+
+### Mevcut durum
+
+| Modül | Şema | Backend API | Mobil UI |
+| ----- | ---- | ----------- | -------- |
+| Expense | ✅ | ✅ | ⬜ iskelet |
+| Ticket + TicketUpdate | ✅ | ✅ | ⬜ placeholder sekme |
+| Notification + duyuru | ✅ | ✅ | ⬜ ayarlarda “yakında” |
+| FCM push (Admin SDK) | ✅ | ✅ production zorunlu | ⬜ init yok |
+| FCM token | ✅ | ✅ `PUT /me/fcm-token` | ⬜ upload akışı |
+
+**Tekrar kullanılan kalıp:** `dueService` / `buildingRoutes` — bina sahipliği `managerId`, sakin `apartmentId` + `RESIDENT`, yanıt `{ success, message?, data }`, yetki sızıntısı **404** (enumeration önleme).
+
+### Önerilen dosya yapısı
+
+```
+backend/src/
+├── config/firebase.js
+├── services/
+│   ├── notificationService.js   # createForUsers + list/read + FCM
+│   ├── pushService.js
+│   ├── announcementService.js
+│   ├── ticketService.js
+│   └── expenseService.js
+├── controllers/  (notification, ticket, expense, announcement)
+├── routes/
+│   ├── notificationRoutes.js
+│   ├── ticketRoutes.js
+│   ├── apartmentTicketRoutes.js
+│   ├── expenseRoutes.js
+│   └── buildingRoutes.js  (+ expenses, tickets, announcements)
+└── middlewares/validate.js  # expenseSchemas, ticketSchemas, notificationSchemas
+```
+
+`index.js` mount sırası (çakışma önleme):
+
+```js
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/tickets", ticketRoutes);
+app.use("/api/v1/apartments/:apartmentId/tickets", apartmentTicketRoutes);
+// buildingRoutes içinde: /:id/expenses, /:id/expenses/summary, /:id/tickets, /:id/announcements
+// meRoutes içinde: GET /tickets
+```
+
+### API sözleşmesi (`/api/v1`)
+
+#### 1) Giderler (MANAGER)
+
+| Method | Path | Body / Query | Açıklama |
+| ------ | ---- | ------------ | -------- |
+| GET | `/buildings/:buildingId/expenses` | `?month=&year=&category=` | Liste, `date` desc |
+| GET | `/buildings/:buildingId/expenses/summary` | `?month=&year=` | Kategori toplamları + genel toplam |
+| POST | `/buildings/:buildingId/expenses` | `title, amount, category, date, note?, receiptUrl?` | Kayıt |
+| PUT | `/expenses/:expenseId` | Aynı alanlar (kısmi) | Bina sahibi doğrulaması |
+| DELETE | `/expenses/:expenseId` | — | Sil |
+
+`receiptUrl`: Faz 2A’da opsiyonel **HTTPS URL string** (max 2048); dosya upload Faz 2B.
+
+`summary` örnek yanıt:
+
+```json
+{
+  "success": true,
+  "data": {
+    "month": 5,
+    "year": 2026,
+    "totalAmount": "12500.00",
+    "currency": "TRY",
+    "byCategory": [{ "category": "CLEANING", "amount": "3000.00", "count": 2 }]
+  }
+}
+```
+
+#### 2) Talepler (Ticket)
+
+| Method | Path | Rol | Açıklama |
+| ------ | ---- | --- | -------- |
+| GET | `/buildings/:buildingId/tickets` | MANAGER | `?status=&category=`; daire + sakin özeti |
+| GET | `/me/tickets` | RESIDENT | Kendi talepleri |
+| GET | `/tickets/:ticketId` | MANAGER veya talep sahibi | `updates` dahil |
+| POST | `/apartments/:apartmentId/tickets` | RESIDENT | Yeni talep; `userId` = JWT, daire = kullanıcının `apartmentId` |
+| POST | `/tickets/:ticketId/updates` | MANAGER | `message`; `fromRole: MANAGER` |
+| PATCH | `/tickets/:ticketId/status` | MANAGER | `status`: OPEN → IN_PROGRESS → RESOLVED → CLOSED |
+
+**İş kuralları:**
+
+- Sakin yalnızca **kendi dairesinde** talep açar (`apartmentId === user.apartmentId`).
+- Yönetici yalnızca **kendi binasındaki** talepleri görür/günceller (`apartment.building.managerId`).
+- `POST .../updates` ve durum değişimleri: `Notification` (`TICKET_UPDATE`) + FCM denemesi.
+- `CLOSED` sonrası güncelleme: 409 (veya yalnızca status değişimine izin — netleştirilecek).
+
+#### 3) Bildirimler
+
+| Method | Path | Rol | Açıklama |
+| ------ | ---- | --- | -------- |
+| GET | `/notifications` | Her iki rol | `?unreadOnly=true&limit=20&cursor=` |
+| PATCH | `/notifications/:id/read` | Alıcı | `userId` eşleşmesi |
+| PATCH | `/notifications/read-all` | Alıcı | Tümünü okundu |
+| POST | `/buildings/:buildingId/announcements` | MANAGER | `title, body` → binadaki tüm sakinlere `ANNOUNCEMENT` |
+
+**`notificationService.create` (iç):**
+
+```js
+// userId[], type, title, body, data?: { ticketId, buildingId, ... }
+// Her kullanıcı için Notification INSERT; fcmToken varsa push kuyruğu
+```
+
+**Otomatik tetikleyiciler (Faz 2A):**
+
+| Olay | type | Alıcı |
+| ---- | ---- | ----- |
+| Yönetici talep güncellemesi | `TICKET_UPDATE` | Talep sahibi sakin |
+| Yönetici duyuru | `ANNOUNCEMENT` | Binadaki tüm sakinler |
+| (Sonra) Aidat ödendi | `DUE_PAID` | İlgili sakin |
+
+**FCM katmanı (zorunlu):** `config/firebase.js` + `pushService.js` — production’da Admin SDK şart; her `createForUsers` sonrası push. Ayrıntı: `PLAN.md`.
+
+### Yetkilendirme özeti
+
+```
+MANAGER + building.managerId === req.user.id  →  bina expenses/tickets/announcements
+RESIDENT + user.apartmentId === apartmentId →  talep oluşturma
+RESIDENT + ticket.userId === req.user.id      →  talep detayı (kendi)
+MANAGER + ticket.apartment.building.managerId →  talep detayı / güncelleme
+notification.userId === req.user.id           →  okundu işaretleme
+```
+
+### Uygulama sırası (önerilen)
+
+| Adım | İş | Tahmini | Çıktı |
+| ---- | -- | ------- | ----- |
+| **2A.1** | `notificationService` + routes | ✅ | Bildirim kutusu API |
+| **2A.2** | `ticketService` + ticket route’ları + `me/tickets` | ✅ | Talep CRUD |
+| **2A.3** | Ticket → `TICKET_UPDATE` | ✅ | Olay tetikleyici |
+| **2A.4** | `expenseService` + summary | ✅ | Gider API |
+| **2A.5** | `POST .../announcements` | ✅ | Yönetici duyuru |
+| **2A.6** | Firebase + `pushService` | ✅ | Production FCM zorunlu |
+| **2A.7** | Zod + `test.py` Faz 2A | ✅ | E2E smoke |
+
+**Toplam:** ~4–5 geliştirici günü (tek kişi, mevcut kalıba hakim).
+
+### `validate.js` ekleri (özet)
+
+- `expenseSchemas`: create, update, list query, summary query, `expenseId` params
+- `ticketSchemas`: create (title, description, category), update status, add update, list filters
+- `notificationSchemas`: list query (limit 1–50, cursor uuid), announce body
+
+### Test planı (`test.py`)
+
+1. Yönetici: bina → gider CRUD + summary assert  
+2. Sakin: join → talep oluştur → listede görünür  
+3. Yönetici: talep status + update → sakin `GET /notifications` içinde `TICKET_UPDATE`  
+4. Yönetici: announcement → tüm sakinlerde kayıt  
+5. Yetkisiz: başka binanın gideri/talebi → 403/404  
+
+### Mobil uyum (Faz 2A sonrası)
+
+| Backend | Mobil iş |
+| ------- | -------- |
+| Expenses API | `features/expenses/` data + yönetici tab (veya bina detayı) |
+| Tickets API | `resident_dashboard` Talepler sekmesi + yönetici liste |
+| Notifications API | `SettingsTab` bildirimler + isteğe bağlı ayrı sekme |
+
+`ApiConstants` içindeki sabitler (`buildingExpenses`, `myTickets`, `notifications`, …) zaten tanımlı — backend path’ler bunlarla birebir hizalanmalı.
+
+### Açık kararlar (implementasyon öncesi)
+
+1. **Abonelik kilidi:** Duyuru ve yeni gider için `Subscription.status === ACTIVE` zorunlu mu? (Şimdilik **hayır** — RevenueCat gelene kadar atlanır.)  
+2. **Talep kapanınca:** `CLOSED` iken yönetici notu — izin ver / verme? (Öneri: yalnızca `OPEN`/`IN_PROGRESS` iken not.)  
+3. **Sayfalama:** Bildirimler cursor (`createdAt` + `id`) mı offset mi? (Öneri: cursor.)  
+4. **`DELETE /expenses`:** Kalıcı silme mi soft-delete? (Öneri: kalıcı — şemada `deletedAt` yok.)
+
+### Kabul kriterleri (Definition of Done — backend)
+
+- [x] Tüm endpoint’ler `/api/v1` altında, Zod doğrulamalı, Türkçe hata mesajları  
+- [x] MANAGER/RESIDENT yetki sızıntısı yok (`test.py` çapraz yönetici 404)  
+- [x] Talep güncellemesi DB bildirimi + `TICKET_UPDATE`  
+- [x] `test.py` Faz 1 + Faz 2A senaryoları  
+- [x] `AIDATPANEL.md` API tabloları güncel  
+- [ ] Gerçek cihazda FCM (Firebase env + geçerli token — manuel; Flutter B1 sonrası)
 
 ### Faz 3 — Büyüme
 

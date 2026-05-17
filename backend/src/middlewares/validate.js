@@ -404,3 +404,186 @@ export const dueSchemas = {
     }),
   },
 };
+
+/** Faz 2A — Gider (Aşama A4) */
+export const expenseSchemas = {
+  listByBuilding: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    query: z.object({
+      month: z.string().optional(),
+      year: z.string().optional(),
+      category: z
+        .enum([
+          "CLEANING",
+          "ELEVATOR",
+          "ELECTRICITY",
+          "WATER",
+          "INSURANCE",
+          "REPAIR",
+          "GARDEN",
+          "OTHER",
+        ])
+        .optional(),
+    }),
+  },
+  summaryByBuilding: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    query: z.object({
+      month: z.string().regex(/^\d{1,2}$/, "Ay 1-12 arasında olmalıdır"),
+      year: z.string().regex(/^\d{4}$/, "Yıl dört haneli olmalıdır"),
+    }),
+  },
+  create: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    body: z.object({
+      title: z.string().min(1).max(200),
+      amount: z.number().positive("Tutar pozitif olmalıdır"),
+      category: z.enum([
+        "CLEANING",
+        "ELEVATOR",
+        "ELECTRICITY",
+        "WATER",
+        "INSURANCE",
+        "REPAIR",
+        "GARDEN",
+        "OTHER",
+      ]),
+      date: z.string().datetime({ message: "Geçerli bir tarih giriniz (ISO 8601)" }),
+      note: z.string().max(500).optional(),
+      receiptUrl: z.string().url().max(2048).optional().nullable(),
+    }),
+  },
+  update: {
+    params: z.object({
+      expenseId: z.string().uuid("Geçerli bir gider ID'si giriniz"),
+    }),
+    body: z
+      .object({
+        title: z.string().min(1).max(200).optional(),
+        amount: z.number().positive().optional(),
+        category: z
+          .enum([
+            "CLEANING",
+            "ELEVATOR",
+            "ELECTRICITY",
+            "WATER",
+            "INSURANCE",
+            "REPAIR",
+            "GARDEN",
+            "OTHER",
+          ])
+          .optional(),
+        date: z.string().datetime().optional(),
+        note: z.string().max(500).optional().nullable(),
+        receiptUrl: z.string().url().max(2048).optional().nullable(),
+      })
+      .refine((d) => Object.keys(d).length > 0, {
+        message: "En az bir alan gönderin.",
+      }),
+  },
+  delete: {
+    params: z.object({
+      expenseId: z.string().uuid("Geçerli bir gider ID'si giriniz"),
+    }),
+  },
+};
+
+const ticketStatusEnum = z.enum(["OPEN", "IN_PROGRESS", "RESOLVED", "CLOSED"]);
+const ticketCategoryEnum = z.enum([
+  "COMPLAINT",
+  "REQUEST",
+  "MALFUNCTION",
+  "OTHER",
+]);
+
+/** Faz 2A — Talep (Aşama A2) */
+export const ticketSchemas = {
+  listByBuilding: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    query: z.object({
+      status: ticketStatusEnum.optional(),
+      category: ticketCategoryEnum.optional(),
+    }),
+  },
+  myTickets: {
+    query: z.object({
+      status: ticketStatusEnum.optional(),
+      category: ticketCategoryEnum.optional(),
+    }),
+  },
+  getById: {
+    params: z.object({
+      ticketId: z.string().uuid("Geçerli bir talep ID'si giriniz"),
+    }),
+  },
+  create: {
+    params: z.object({
+      apartmentId: z.string().uuid("Geçerli bir daire ID'si giriniz"),
+    }),
+    body: z.object({
+      title: z.string().min(1).max(120),
+      description: z.string().min(1).max(2000),
+      category: ticketCategoryEnum,
+    }),
+  },
+  addUpdate: {
+    params: z.object({
+      ticketId: z.string().uuid("Geçerli bir talep ID'si giriniz"),
+    }),
+    body: z.object({
+      message: z.string().min(1).max(2000),
+    }),
+  },
+  updateStatus: {
+    params: z.object({
+      ticketId: z.string().uuid("Geçerli bir talep ID'si giriniz"),
+    }),
+    body: z.object({
+      status: ticketStatusEnum,
+    }),
+  },
+};
+
+/** Faz 2A — Bildirim (Aşama A1) */
+export const notificationSchemas = {
+  list: {
+    query: z.object({
+      unreadOnly: z
+        .string()
+        .optional()
+        .transform((v) => {
+          if (v === "true") return true;
+          if (v === "false") return false;
+          return undefined;
+        }),
+      limit: z
+        .string()
+        .optional()
+        .transform((v) => (v ? parseInt(v, 10) : 20))
+        .pipe(z.number().int().min(1).max(50)),
+      cursor: z.string().uuid("Geçersiz cursor").optional(),
+    }),
+  },
+  markRead: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bildirim ID'si giriniz"),
+    }),
+  },
+  announce: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    body: z.object({
+      title: z.string().min(1).max(120),
+      body: z.string().min(1).max(2000),
+    }),
+  },
+};

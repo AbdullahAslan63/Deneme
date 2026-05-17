@@ -67,6 +67,14 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  // HttpError (access.js, service katmanı)
+  if (err instanceof Error && err.name === "HttpError" && err.statusCode) {
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+    });
+  }
+
   // Rate limit hatası
   if (err.status === 429) {
     return res.status(429).json({

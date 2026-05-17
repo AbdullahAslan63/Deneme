@@ -4,8 +4,13 @@ AidatPanel API — /api/v1 kapsamlı smoke test + Flutter uyum doğrulamaları.
 
 Kapsanan uçlar (özet):
   Auth: register, login, refresh, join, logout, forgot-password, reset-password*
-  Me: GET/PUT/DELETE, password, language, fcm-token, dues (rol)
-  Buildings: CRUD, dues listesi (yıl/ay/status), due-amount, due status
+  Me: GET/PUT/DELETE, password, language, fcm-token, dues, tickets (rol)
+  Notifications: GET, PATCH read, read-all (AIDATPANEL_E2E=1 → POST /_e2e/seed)
+  Tickets: create, list, detail, update, status (sakin + yönetici)
+  Buildings: CRUD, dues listesi (yıl/ay/status), due-amount, due status, expenses + summary
+  Expenses: create, list, summary, update, delete (yönetici); yetki 404
+  Announcements: POST /buildings/:id/announcements → ANNOUNCEMENT (sakin kutusu)
+  Yetki: çapraz yönetici → gider/talep/bina 404; sakin → 403
   Apartments: CRUD, invite-code
 
   * Otomatik reset-password (CI): AIDATPANEL_E2E_RESET_LOG — sunucu dosyaya kod yazar.
@@ -410,6 +415,60 @@ def main() -> int:
     r = req("PUT", "/me/fcm-token", token=manager_access, json_body={"fcmToken": FAKE_FCM_TOKEN})
     expect_ok("PUT /me/fcm-token (MANAGER)", r)
 
+    # --- Notifications (Faz 2A / A1) ---
+    r = req("GET", "/notifications", token=manager_access)
+    b = expect_ok("GET /notifications (MANAGER)", r)
+    if not b or "data" not in b:
+        return 1
+    nd = b["data"]
+    for key in ("items", "nextCursor", "unreadCount"):
+        if key not in nd:
+            fail("GET /notifications data shape", nd)
+            return 1
+
+    notif_id = None
+    if os.environ.get("AIDATPANEL_E2E") == "1":
+        r = req("POST", "/notifications/_e2e/seed", token=manager_access)
+        b = expect_ok("POST /notifications/_e2e/seed (E2E)", r)
+        if not b or "data" not in b:
+            return 1
+        created = (b.get("data") or {}).get("notifications") or []
+        if not created or "id" not in created[0]:
+            fail("POST /notifications/_e2e/seed notifications[]", b)
+            return 1
+        notif_id = created[0]["id"]
+        if (b.get("data") or {}).get("dbCount", 0) < 1:
+            fail("POST /notifications/_e2e/seed dbCount", b)
+            return 1
+
+    if notif_id:
+        r = req(
+            "GET",
+            "/notifications",
+            token=manager_access,
+            params={"unreadOnly": "true"},
+        )
+        b = expect_ok("GET /notifications?unreadOnly=true", r)
+        if not b:
+            return 1
+        ids = [x.get("id") for x in (b.get("data") or {}).get("items") or []]
+        if notif_id not in ids:
+            fail("unread list contains seeded notification", ids)
+            return 1
+
+        r = req("PATCH", f"/notifications/{notif_id}/read", token=manager_access)
+        expect_ok(f"PATCH /notifications/{notif_id}/read", r)
+
+    r = req("PATCH", "/notifications/read-all", token=manager_access)
+    expect_ok("PATCH /notifications/read-all (MANAGER)", r)
+
+    r = req(
+        "PATCH",
+        f"/notifications/{uuid.uuid4()}/read",
+        token=manager_access,
+    )
+    expect_status("PATCH /notifications/:id/read (yok → 404)", r, {404}, success_field=False)
+
     # --- Auth: reset-password E2E (ayrı kullanıcı; etkileşimli Gmail modunda atlanır) ---
     if not INTERACTIVE_RESEND:
         r = req(
@@ -739,6 +798,308 @@ def main() -> int:
             fail("GET /apartments join sonrası", "invite_apartment_id listede yok")
             return 1
         ok("GET /apartments (join sonrası resident.id + güvenlik)")
+
+    # --- Expenses (Faz 2A / A4) ---
+    expense_date = "2026-05-15T10:00:00.000Z"
+    expense_payload = {
+        "title": "Asansör bakımı",
+        "amount": 1250.5,
+        "category": "ELEVATOR",
+        "date": expense_date,
+        "note": "Smoke test gider",
+        "receiptUrl": "https://example.com/receipt.pdf",
+    }
+    r = req(
+        "POST",
+        f"/buildings/{building_id}/expenses",
+        token=manager_access,
+        json_body=expense_payload,
+    )
+    b = expect_ok("POST /buildings/:id/expenses", r)
+    if not b or "data" not in b:
+        return 1
+    expense_id = b["data"].get("id")
+    if not expense_id or float(b["data"].get("amount", 0)) != 1250.5:
+        fail("POST expense response", b)
+        return 1
+
+    r = req("GET", f"/buildings/{building_id}/expenses", token=manager_access)
+    b = expect_ok("GET /buildings/:id/expenses", r)
+    if b and isinstance(b.get("data"), list):
+        if not any(x.get("id") == expense_id for x in b["data"]):
+            fail("GET /buildings/:id/expenses contains created expense", b)
+            return 1
+    else:
+        return 1
+
+    r = req(
+        "GET",
+        f"/buildings/{building_id}/expenses/summary",
+        token=manager_access,
+        params={"month": "5", "year": "2026"},
+    )
+    b = expect_ok("GET /buildings/:id/expenses/summary", r)
+    if b and "data" in b:
+        summ = b["data"]
+        for key in ("month", "year", "totalAmount", "currency", "byCategory"):
+            if key not in summ:
+                fail("expense summary keys", summ)
+                return 1
+        if summ.get("month") != 5 or summ.get("year") != 2026:
+            fail("expense summary month/year", summ)
+            return 1
+        if float(summ.get("totalAmount", 0)) < 1250.5:
+            fail("expense summary totalAmount", summ)
+            return 1
+    else:
+        return 1
+
+    r = req(
+        "PUT",
+        f"/expenses/{expense_id}",
+        token=manager_access,
+        json_body={"title": "Asansör bakımı (güncellendi)"},
+    )
+    b = expect_ok("PUT /expenses/:expenseId", r)
+    if b and b.get("data", {}).get("title") != "Asansör bakımı (güncellendi)":
+        fail("PUT expense title", b)
+        return 1
+
+    mgr2_email = f"mgr2_{ts}_{uuid.uuid4().hex[:8]}@test.local"
+    r = req(
+        "POST",
+        "/auth/register",
+        json_body={"name": "Other Manager", "email": mgr2_email, "password": PASSWORD},
+    )
+    expect_ok("POST /auth/register (çapraz yetki yönetici 2)", r)
+    r = req("POST", "/auth/login", json_body={"identifier": mgr2_email, "password": PASSWORD})
+    b2 = expect_ok("POST /auth/login (yönetici 2)", r)
+    if not b2 or "data" not in b2:
+        return 1
+    manager2_access = b2["data"]["accessToken"]
+
+    r = req(
+        "PUT",
+        f"/expenses/{expense_id}",
+        token=manager2_access,
+        json_body={"title": "Yetkisiz güncelleme"},
+    )
+    expect_status("PUT /expenses/:id (başka yönetici → 404)", r, {404}, success_field=False)
+
+    r = req("GET", f"/buildings/{building_id}/expenses", token=manager2_access)
+    expect_status("GET /buildings/:id/expenses (başka yönetici → 404)", r, {404}, success_field=False)
+
+    r = req(
+        "GET",
+        f"/buildings/{building_id}/expenses/summary",
+        token=manager_access,
+    )
+    expect_status("GET expenses/summary (month/year yok → 400)", r, {400}, success_field=False)
+
+    r = req("GET", f"/buildings/{building_id}/expenses", token=resident_access)
+    expect_status("GET /buildings/:id/expenses (RESIDENT → 403)", r, {403}, success_field=False)
+
+    r = req("DELETE", f"/expenses/{expense_id}", token=manager_access)
+    expect_ok("DELETE /expenses/:expenseId", r)
+
+    r = req("PUT", f"/expenses/{expense_id}", token=manager_access, json_body={"title": "x"})
+    expect_status("PUT /expenses/:id (silinmiş → 404)", r, {404}, success_field=False)
+
+    r = req("PUT", f"/expenses/{uuid.uuid4()}", token=manager_access, json_body={"title": "x"})
+    expect_status("PUT /expenses/:id (yok → 404)", r, {404}, success_field=False)
+
+    # --- Tickets (Faz 2A / A2) ---
+    ticket_body = {
+        "title": "Asansör arızası",
+        "description": "Test smoke — 3. kat",
+        "category": "MALFUNCTION",
+    }
+    r = req(
+        "POST",
+        f"/apartments/{invite_apartment_id}/tickets",
+        token=resident_access,
+        json_body=ticket_body,
+    )
+    b = expect_ok("POST /apartments/:apartmentId/tickets (RESIDENT)", r)
+    if not b or "data" not in b:
+        return 1
+    ticket_id = b["data"].get("id")
+    if not ticket_id or b["data"].get("status") != "OPEN":
+        fail("POST ticket response", b)
+        return 1
+
+    if extra_apartment_id:
+        r = req(
+            "POST",
+            f"/apartments/{extra_apartment_id}/tickets",
+            token=resident_access,
+            json_body=ticket_body,
+        )
+        expect_status("POST /tickets (başka daire → 403)", r, {403}, success_field=False)
+
+    r = req("GET", "/me/tickets", token=resident_access)
+    b = expect_ok("GET /me/tickets (RESIDENT)", r)
+    if not b or not any((x.get("id") == ticket_id for x in (b.get("data") or []))):
+        fail("GET /me/tickets contains created ticket", b)
+        return 1
+
+    r = req("GET", f"/buildings/{building_id}/tickets", token=manager_access)
+    b = expect_ok("GET /buildings/:id/tickets (MANAGER)", r)
+    if not b or not any((x.get("id") == ticket_id for x in (b.get("data") or []))):
+        fail("GET /buildings/:id/tickets contains created ticket", b)
+        return 1
+
+    r = req("GET", f"/tickets/{ticket_id}", token=resident_access)
+    b = expect_ok("GET /tickets/:id (RESIDENT)", r)
+    if not b or "updates" not in (b.get("data") or {}):
+        fail("GET /tickets/:id updates[]", b)
+        return 1
+
+    r = req(
+        "POST",
+        f"/tickets/{ticket_id}/updates",
+        token=resident_access,
+        json_body={"message": "Sakin notu"},
+    )
+    expect_status("POST /tickets/:id/updates (RESIDENT → 403)", r, {403}, success_field=False)
+
+    r = req(
+        "POST",
+        f"/tickets/{ticket_id}/updates",
+        token=manager_access,
+        json_body={"message": "Teknisyen yarın gelecek."},
+    )
+    expect_ok("POST /tickets/:id/updates (MANAGER)", r)
+
+    r = req(
+        "GET",
+        "/notifications",
+        token=resident_access,
+        params={"unreadOnly": "true"},
+    )
+    b = expect_ok("GET /notifications (TICKET_UPDATE after manager note)", r)
+    if not b:
+        return 1
+    n_items = (b.get("data") or {}).get("items") or []
+    if not any((x.get("type") == "TICKET_UPDATE" for x in n_items)):
+        fail("resident inbox TICKET_UPDATE after note", n_items)
+        return 1
+    ticket_notifs = [x for x in n_items if x.get("type") == "TICKET_UPDATE"]
+    if not any((x.get("data") or {}).get("ticketId") == ticket_id for x in ticket_notifs):
+        fail("TICKET_UPDATE data.ticketId", ticket_notifs)
+        return 1
+    ok("TICKET_UPDATE bildirimi (in-app) — A3")
+
+    # --- Announcements (Faz 2A / A5) ---
+    announce_title = "Su kesintisi duyurusu"
+    announce_body = "Yarın 09:00–12:00 arası bakım nedeniyle su kesilecektir."
+    r = req(
+        "POST",
+        f"/buildings/{building_id}/announcements",
+        token=manager_access,
+        json_body={"title": announce_title, "body": announce_body},
+    )
+    b = expect_ok("POST /buildings/:id/announcements", r)
+    if not b or "data" not in b:
+        return 1
+    ann = b["data"]
+    for key in ("created", "pushSent", "pushFailed"):
+        if key not in ann:
+            fail("announcement response keys", ann)
+            return 1
+    if ann.get("created", 0) < 1:
+        fail("announcement created count (en az 1 sakin)", ann)
+        return 1
+
+    r = req(
+        "GET",
+        "/notifications",
+        token=resident_access,
+        params={"limit": "50"},
+    )
+    b = expect_ok("GET /notifications (ANNOUNCEMENT after duyuru)", r)
+    if not b:
+        return 1
+    n_items = (b.get("data") or {}).get("items") or []
+    ann_items = [x for x in n_items if x.get("type") == "ANNOUNCEMENT"]
+    if not any(x.get("title") == announce_title for x in ann_items):
+        fail("resident inbox ANNOUNCEMENT title", ann_items)
+        return 1
+    if not any(
+        (x.get("data") or {}).get("buildingId") == building_id for x in ann_items
+    ):
+        fail("ANNOUNCEMENT data.buildingId", ann_items)
+        return 1
+    ok("ANNOUNCEMENT bildirimi (in-app) — A5")
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager_access,
+        json_body={"status": "IN_PROGRESS"},
+    )
+    expect_ok("PATCH /tickets/:id/status → IN_PROGRESS", r)
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager_access,
+        json_body={"status": "OPEN"},
+    )
+    expect_status("PATCH /tickets/:id/status (geri geçiş → 400)", r, {400}, success_field=False)
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager_access,
+        json_body={"status": "RESOLVED"},
+    )
+    expect_ok("PATCH /tickets/:id/status → RESOLVED", r)
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager_access,
+        json_body={"status": "CLOSED"},
+    )
+    expect_ok("PATCH /tickets/:id/status → CLOSED", r)
+
+    r = req(
+        "POST",
+        f"/tickets/{ticket_id}/updates",
+        token=manager_access,
+        json_body={"message": "Kapalı talebe not"},
+    )
+    expect_status("POST /tickets/:id/updates (CLOSED → 409)", r, {409}, success_field=False)
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager_access,
+        json_body={"status": "OPEN"},
+    )
+    expect_status("PATCH /tickets/:id/status (CLOSED → OPEN → 409)", r, {409}, success_field=False)
+
+    r = req("GET", f"/tickets/{uuid.uuid4()}", token=manager_access)
+    expect_status("GET /tickets/:id (yok → 404)", r, {404}, success_field=False)
+
+    r = req(
+        "PATCH",
+        f"/tickets/{ticket_id}/status",
+        token=manager2_access,
+        json_body={"status": "IN_PROGRESS"},
+    )
+    expect_status("PATCH /tickets/:id/status (başka yönetici → 404)", r, {404}, success_field=False)
+
+    r = req(
+        "POST",
+        f"/buildings/{building_id}/announcements",
+        token=manager2_access,
+        json_body={"title": "Yetkisiz", "body": "Duyuru"},
+    )
+    expect_status("POST /announcements (başka yönetici → 404)", r, {404}, success_field=False)
+
+    ok("Çapraz bina yetki testleri (404) — A6")
 
     r = req("GET", f"/buildings/{building_id}/dues", token=manager_access)
     b = expect_ok("GET /buildings/:id/dues (join sonrası)", r)

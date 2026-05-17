@@ -5,11 +5,16 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import { connectDB, disconnectDB } from "./src/config/db.js";
+import { initFirebase } from "./src/config/firebase.js";
 import authRouter from "./src/routes/authRoutes.js";
 import buildingRoutes from "./src/routes/buildingRoutes.js";
 import apartmentRoutes from "./src/routes/apartmentRoutes.js";
 import inviteCodeRoutes from "./src/routes/inviteCodeRoutes.js";
 import meRoutes from "./src/routes/meRoutes.js";
+import notificationRoutes from "./src/routes/notificationRoutes.js";
+import ticketRoutes from "./src/routes/ticketRoutes.js";
+import apartmentTicketRoutes from "./src/routes/apartmentTicketRoutes.js";
+import expenseRoutes from "./src/routes/expenseRoutes.js";
 import { apiLimiter } from "./src/middlewares/rateLimitMiddleware.js";
 import { errorHandler, notFoundHandler } from "./src/middlewares/errorHandler.js";
 
@@ -43,7 +48,11 @@ app.use("/api/v1", apiLimiter);
 // BODY PARSING MIDDLEWARE'I
 app.use(express.json());
 
-// ROTALAR
+// ROTALAR — Faz 2A mount sırası (PLAN.md A0): notifications/tickets önce
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/tickets", ticketRoutes);
+app.use("/api/v1/apartments/:apartmentId/tickets", apartmentTicketRoutes);
+app.use("/api/v1/expenses", expenseRoutes);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/buildings", buildingRoutes);
 app.use("/api/v1/buildings/:buildingId/apartments", apartmentRoutes);
@@ -56,18 +65,32 @@ app.use(notFoundHandler);
 // Global Error Handler - Tüm hataları merkezi olarak yönetir
 app.use(errorHandler);
 
-connectDB();
-const server = app.listen(port, () => {
-  console.log("Server is running on port: ", port);
+let server;
+
+async function bootstrap() {
+  await connectDB();
+  initFirebase();
+  server = app.listen(port, () => {
+    console.log("Server is running on port: ", port);
+  });
+}
+
+bootstrap().catch((err) => {
+  console.error("Bootstrap failed:", err);
+  process.exit(1);
 });
 
 // Handle unhandled promise rejections (e.g., database connection errors)
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled Rejection:", err);
-  server.close(async () => {
-    await disconnectDB();
+  if (server) {
+    server.close(async () => {
+      await disconnectDB();
+      process.exit(1);
+    });
+  } else {
     process.exit(1);
-  });
+  }
 });
 
 // Handle uncaught exceptions
@@ -80,6 +103,10 @@ process.on("uncaughtException", async (err) => {
 // Graceful shutdown
 process.on("SIGTERM", async () => {
   console.log("SIGTERM received, shutting down gracefully");
+  if (!server) {
+    process.exit(0);
+    return;
+  }
   server.close(async () => {
     await disconnectDB();
     process.exit(0);

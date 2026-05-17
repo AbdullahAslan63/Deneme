@@ -1,0 +1,33 @@
+# AidatPanel — yerel PostgreSQL (backend + Prisma migrate / test.py)
+#
+# Başlat:  docker compose up -d
+# Durum:   docker compose ps
+# Log:     docker compose logs -f postgres
+# Durdur:  docker compose down
+# Sıfır:   docker compose down -v   (tüm veriyi siler)
+#
+# backend/.env içinde:
+#   DATABASE_URL="postgresql://aidatpanel:aidatpanel@127.0.0.1:5433/aidatpanel?schema=public"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aidatpanel-postgres
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: aidatpanel
+      POSTGRES_PASSWORD: aidatpanel
+      POSTGRES_DB: aidatpanel
+    volumes:
+      - aidatpanel_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aidatpanel -d aidatpanel"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  aidatpanel_pg_data:
