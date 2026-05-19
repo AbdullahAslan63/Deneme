@@ -1,0 +1,255 @@
+{
+  "info": {
+    "name": "AidatPanel — Bildirimler (Notifications)",
+    "description": "Bildirim API uçları: GET /notifications, PATCH read, read-all, PUT /me/fcm-token.\n\nKurulum:\n1. Docker: docker compose up -d\n2. Backend: cd backend && npm run dev\n3. Collection Variables: baseUrl = http://127.0.0.1:4200/api/v1\n4. Önce \"0 — Auth\" klasöründeki Login isteğini çalıştır (accessToken otomatik kaydedilir).\n5. Test bildirimi için AIDATPANEL_E2E=1 (.env) + sunucu restart gerekir.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:4200/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "notificationId", "value": "" },
+    { "key": "managerEmail", "value": "yusuf.postman@test.local" },
+    { "key": "managerPassword", "value": "Test123456" },
+    { "key": "fakeFcmToken", "value": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff" }
+  ],
+  "item": [
+    {
+      "name": "0 — Auth (önce bunu çalıştır)",
+      "item": [
+        {
+          "name": "Register Manager",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Yusuf Yönetici\",\n  \"email\": \"{{managerEmail}}\",\n  \"password\": \"{{managerPassword}}\",\n  \"phone\": \"+905551112233\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('success true', () => pm.expect(pm.response.json().success).to.eql(true));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Manager",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{managerEmail}}\",\n  \"password\": \"{{managerPassword}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const body = pm.response.json();",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('accessToken var', () => pm.expect(body.data.accessToken).to.be.a('string'));",
+                  "pm.collectionVariables.set('accessToken', body.data.accessToken);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "1 — FCM Token",
+      "item": [
+        {
+          "name": "PUT /me/fcm-token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fcmToken\": \"{{fakeFcmToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/me/fcm-token"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('mesaj', () => pm.expect(pm.response.json().message).to.include('FCM'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "2 — Bildirimler",
+      "item": [
+        {
+          "name": "GET /notifications (tümü)",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const d = pm.response.json().data;",
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('items dizisi', () => pm.expect(d.items).to.be.an('array'));",
+                  "pm.test('unreadCount sayı', () => pm.expect(d.unreadCount).to.be.a('number'));",
+                  "if (d.items.length > 0) {",
+                  "  pm.collectionVariables.set('notificationId', d.items[0].id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "GET /notifications?unreadOnly=true&limit=10",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{baseUrl}}/notifications?unreadOnly=true&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications"],
+              "query": [
+                { "key": "unreadOnly", "value": "true" },
+                { "key": "limit", "value": "10" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "POST /notifications/dev/seed (test bildirimi)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/dev/seed",
+            "description": "Development veya AIDATPANEL_E2E=1 iken çalışır."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "  const n = pm.response.json().data.notifications[0];",
+                  "  pm.collectionVariables.set('notificationId', n.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /notifications/:id/read",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/{{notificationId}}/read"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('isRead true', () => pm.expect(pm.response.json().data.isRead).to.eql(true));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /notifications/read-all",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/read-all"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('updated sayı', () => pm.expect(pm.response.json().data.updated).to.be.a('number'));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "PATCH /notifications/:id/read (404 — yok)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": "{{baseUrl}}/notifications/00000000-0000-4000-8000-000000000099/read"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('404 Not Found', () => pm.response.to.have.status(404));",
+                  "pm.test('success false', () => pm.expect(pm.response.json().success).to.eql(false));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "3 — Gerçek Duyuru Akışı (sakin bildirimi)",
+      "description": "Yönetici duyuru gönderir → sakin GET /notifications ile görür. Sakin token'ı manuel login ile alın.",
+      "item": [
+        {
+          "name": "POST /buildings/:id/announcements",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Aidat Hatırlatması\",\n  \"body\": \"Mayıs ayı aidatınızı lütfen zamanında ödeyiniz.\"\n}"
+            },
+            "url": "{{baseUrl}}/buildings/BUILDING_ID_BURAYA/announcements",
+            "description": "buildingId'yi bina oluşturduktan sonra URL'de değiştir. Binada en az bir aktif sakin olmalı."
+          }
+        }
+      ]
+    }
+  ]
+}

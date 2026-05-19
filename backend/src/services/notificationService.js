@@ -1,27 +1,12 @@
 import { prisma } from "../config/db.js";
 import { HttpError } from "../utils/httpError.js";
+import { NOTIFICATION_MESSAGES } from "../constants/notificationConstants.js";
+import {
+  buildPushData,
+  formatNotificationListPage,
+  formatNotificationRow,
+} from "../utils/notificationPayload.js";
 import { sendToToken } from "./pushService.js";
-
-/**
- * FCM data alanı — tüm değerler string (PLAN.md sözleşmesi).
- * @param {import("@prisma/client").Notification} notification
- */
-function buildPushData(notification) {
-  const fromJson =
-    notification.data &&
-    typeof notification.data === "object" &&
-    !Array.isArray(notification.data)
-      ? notification.data
-      : {};
-
-  return {
-    type: String(notification.type),
-    notificationId: String(notification.id),
-    ...Object.fromEntries(
-      Object.entries(fromJson).map(([k, v]) => [k, v == null ? "" : String(v)])
-    ),
-  };
-}
 
 /**
  * Birden fazla kullanıcıya in-app bildirim + FCM push.
@@ -31,7 +16,7 @@ function buildPushData(notification) {
 export async function createForUsers(userIds, { type, title, body, data }) {
   const uniqueIds = [...new Set(userIds.filter(Boolean))];
   if (uniqueIds.length === 0) {
-    return { dbCount: 0, pushSent: 0, pushFailed: 0, pushSkipped: 0 };
+    return { dbCount: 0, pushSent: 0, pushFailed: 0, pushSkipped: 0, notifications: [] };
   }
 
   const notifications = await prisma.$transaction(
@@ -85,13 +70,13 @@ export async function createForUsers(userIds, { type, title, body, data }) {
     pushSent,
     pushFailed,
     pushSkipped,
-    notifications,
+    notifications: notifications.map(formatNotificationRow),
   };
 }
 
 /**
- * @param {string} userId
- * @param {{ unreadOnly?: boolean, limit?: number, cursor?: string }} options
+ * Giriş yapmış kullanıcının bildirim kutusu.
+ * GET /api/v1/notifications
  */
 export async function listForUser(userId, { unreadOnly, limit = 20, cursor } = {}) {
   const where = { userId };
@@ -105,7 +90,7 @@ export async function listForUser(userId, { unreadOnly, limit = 20, cursor } = {
       where: { id: cursor, userId },
     });
     if (!cursorRow) {
-      throw new HttpError(400, "Geçersiz sayfalama imleci (cursor).");
+      throw new HttpError(400, NOTIFICATION_MESSAGES.INVALID_CURSOR);
     }
     where.AND = [
       {
@@ -135,9 +120,10 @@ export async function listForUser(userId, { unreadOnly, limit = 20, cursor } = {
     where: { userId, isRead: false },
   });
 
-  return { items, nextCursor, unreadCount };
+  return formatNotificationListPage({ items, nextCursor, unreadCount });
 }
 
+/** PATCH /api/v1/notifications/:id/read */
 export async function markRead(userId, notificationId) {
   const result = await prisma.notification.updateMany({
     where: { id: notificationId, userId },
@@ -145,16 +131,17 @@ export async function markRead(userId, notificationId) {
   });
 
   if (result.count === 0) {
-    throw new HttpError(404, "Bildirim bulunamadı.");
+    throw new HttpError(404, NOTIFICATION_MESSAGES.NOT_FOUND);
   }
 
   const updated = await prisma.notification.findUnique({
     where: { id: notificationId },
   });
 
-  return updated;
+  return formatNotificationRow(updated);
 }
 
+/** PATCH /api/v1/notifications/read-all */
 export async function markAllRead(userId) {
   const result = await prisma.notification.updateMany({
     where: { userId, isRead: false },
@@ -162,4 +149,12 @@ export async function markAllRead(userId) {
   });
 
   return { updated: result.count };
+}
+
+/**
+ * Development / E2E — giriş yapmış kullanıcıya test bildirimi.
+ * POST /api/v1/notifications/dev/seed
+ */
+export async function seedDevNotification(userId, payload) {
+  return createForUsers([userId], payload);
 }

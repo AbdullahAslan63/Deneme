@@ -1,32 +1,26 @@
 import { Router } from "express";
 import { authMiddleware } from "../middlewares/authMiddleware.js";
-import { validate, notificationSchemas } from "../middlewares/validate.js";
+import { validate } from "../middlewares/validate.js";
+import { notificationSchemas } from "../validators/notificationValidator.js";
 import {
   listNotifications,
   markNotificationRead,
   markAllNotificationsRead,
+  createDevSeedNotification,
 } from "../controllers/notificationController.js";
-import { createForUsers } from "../services/notificationService.js";
 
 const router = Router();
 
 router.use(authMiddleware);
 
-/** Yalnızca E2E: AIDATPANEL_E2E=1 iken createForUsers doğrulanır (üretimde kapalı). */
-if (process.env.AIDATPANEL_E2E === "1") {
-  router.post("/_e2e/seed", async (req, res, next) => {
-    try {
-      const data = await createForUsers([req.user.id], {
-        type: "SYSTEM",
-        title: "E2E test bildirimi",
-        body: "Smoke test — bildirim kutusu",
-        data: { route: "/manager-dashboard" },
-      });
-      res.status(201).json({ success: true, data });
-    } catch (err) {
-      next(err);
-    }
-  });
+/** Development / E2E test bildirimi oluştur */
+const devSeedEnabled =
+  process.env.NODE_ENV === "development" || process.env.AIDATPANEL_E2E === "1";
+
+if (devSeedEnabled) {
+  router.post("/dev/seed", createDevSeedNotification);
+  /** test.py geriye dönük uyumluluk */
+  router.post("/_e2e/seed", createDevSeedNotification);
 }
 
 router.get("/", validate(notificationSchemas.list), listNotifications);

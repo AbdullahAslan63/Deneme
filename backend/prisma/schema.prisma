@@ -261,6 +261,7 @@ model Notification {
 enum NotificationType {
   DUE_REMINDER
   DUE_PAID
+  TICKET_CREATED
   TICKET_UPDATE
   ANNOUNCEMENT
   SYSTEM

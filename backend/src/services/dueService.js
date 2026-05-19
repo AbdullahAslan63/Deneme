@@ -1,5 +1,8 @@
+import { NOTIFICATION_TYPES } from "../constants/notificationConstants.js";
+import { DUE_PAID_RESIDENT } from "../constants/notificationTemplates.js";
 import { prisma } from "../config/db.js";
 import { userPublicSelect } from "./meService.js";
+import { createForUsers } from "./notificationService.js";
 
 /**
  * Binadaki tüm aidatları listele (yönetici için)
@@ -78,6 +81,8 @@ export const updateDueStatusService = async (dueId, managerId, { status, paidAt,
     return { forbidden: true };
   }
 
+  const previousStatus = due.status;
+
   // Güncelleme verisi
   const updateData = { status };
 
@@ -109,6 +114,33 @@ export const updateDueStatusService = async (dueId, managerId, { status, paidAt,
       },
     },
   });
+
+  if (status === "PAID" && previousStatus !== "PAID") {
+    const resident = await prisma.user.findFirst({
+      where: {
+        apartmentId: due.apartmentId,
+        deletedAt: null,
+        role: "RESIDENT",
+      },
+      select: { id: true },
+    });
+
+    if (resident) {
+      await createForUsers([resident.id], {
+        type: NOTIFICATION_TYPES.DUE_PAID,
+        title: DUE_PAID_RESIDENT.title,
+        body: DUE_PAID_RESIDENT.body(due.month, due.year),
+        data: {
+          dueId: due.id,
+          buildingId: due.apartment.buildingId,
+          apartmentId: due.apartmentId,
+          month: String(due.month),
+          year: String(due.year),
+          route: "/resident-dashboard",
+        },
+      });
+    }
+  }
 
   return {
     ...updated,

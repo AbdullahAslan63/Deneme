@@ -1,3 +1,4 @@
+import { NOTIFICATION_MESSAGES } from "../constants/notificationConstants.js";
 import {
   getProfileService,
   updateProfileService,
@@ -69,7 +70,7 @@ export const updateLanguage = async (req, res, next) => {
 export const updateFcmToken = async (req, res, next) => {
   try {
     await updateFcmTokenService(req.user.id, req.body.fcmToken);
-    res.status(200).json({ success: true, message: "FCM token kaydedildi." });
+    res.status(200).json({ success: true, message: NOTIFICATION_MESSAGES.FCM_SAVED });
   } catch (err) {
     handleHttp(err, res, next);
   }

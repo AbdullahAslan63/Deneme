@@ -48,7 +48,7 @@ import uuid
 
 import requests
 
-BASE = os.environ.get("AIDATPANEL_API_BASE", "httpS://api.aidatpanel.com/api/v1").rstrip("/")
+BASE = os.environ.get("AIDATPANEL_API_BASE", "http://127.0.0.1:4200/api/v1").rstrip("/")
 PASSWORD = "123456"
 PASSWORD2 = "AbCd12"  # PUT /me/password ve benzeri
 PASSWORD3 = "XyZ999"  # reset-password sonrası giriş (otomatik E2E)
@@ -928,6 +928,25 @@ def main() -> int:
         fail("POST ticket response", b)
         return 1
 
+    r = req(
+        "GET",
+        "/notifications",
+        token=manager_access,
+        params={"unreadOnly": "true", "limit": "50"},
+    )
+    b = expect_ok("GET /notifications (TICKET_CREATED after resident ticket)", r)
+    if not b:
+        return 1
+    mgr_items = (b.get("data") or {}).get("items") or []
+    created_notifs = [x for x in mgr_items if x.get("type") == "TICKET_CREATED"]
+    if not created_notifs:
+        fail("manager inbox TICKET_CREATED after new ticket", mgr_items)
+        return 1
+    if not any((x.get("data") or {}).get("ticketId") == ticket_id for x in created_notifs):
+        fail("TICKET_CREATED data.ticketId", created_notifs)
+        return 1
+    ok("TICKET_CREATED bildirimi (yönetici, in-app) — A8")
+
     if extra_apartment_id:
         r = req(
             "POST",
@@ -1003,7 +1022,7 @@ def main() -> int:
     if not b or "data" not in b:
         return 1
     ann = b["data"]
-    for key in ("created", "pushSent", "pushFailed"):
+    for key in ("created", "pushSent", "pushFailed", "pushSkipped"):
         if key not in ann:
             fail("announcement response keys", ann)
             return 1
@@ -1183,6 +1202,89 @@ def main() -> int:
                     fail("GET /me/dues status filtre", row.get("status"))
                     return 1
             ok("GET /me/dues status=PAID filtresi")
+
+        # DUE_REMINDER önce: sample_due_month/year genelde test başında PAID yapılan
+        # ilk aidat kaydıdır; hatırlatma PENDING/OVERDUE gerektirir.
+        remind_due = next(
+            (d for d in my_dues if d.get("status") in ("PENDING", "OVERDUE")),
+            None,
+        )
+        if remind_due:
+            r_rem = req(
+                "POST",
+                f"/buildings/{building_id}/dues/remind",
+                token=manager_access,
+                json_body={
+                    "month": remind_due["month"],
+                    "year": remind_due["year"],
+                },
+            )
+            b_rem = expect_ok("POST /buildings/:id/dues/remind", r_rem)
+            if b_rem:
+                rem = b_rem.get("data") or {}
+                for key in ("reminded", "pushSent", "pushFailed", "pushSkipped"):
+                    if key not in rem:
+                        fail("dues/remind response keys", rem)
+                        return 1
+                if rem.get("reminded", 0) < 1:
+                    fail(
+                        "dues/remind reminded count",
+                        f"beklenen >=1, gelen {rem!r} (o ayda PENDING/OVERDUE yok)",
+                    )
+                    return 1
+                r_rn = req(
+                    "GET",
+                    "/notifications",
+                    token=resident_access,
+                    params={"limit": "50"},
+                )
+                b_rn = expect_ok("GET /notifications (DUE_REMINDER)", r_rn)
+                if b_rn:
+                    rn_items = (b_rn.get("data") or {}).get("items") or []
+                    due_rem = [x for x in rn_items if x.get("type") == "DUE_REMINDER"]
+                    if not due_rem:
+                        fail("resident inbox DUE_REMINDER", rn_items)
+                        return 1
+                    if not any(
+                        (x.get("data") or {}).get("dueId") == remind_due["id"]
+                        for x in due_rem
+                    ):
+                        fail("DUE_REMINDER data.dueId", due_rem)
+                        return 1
+                    ok("DUE_REMINDER bildirimi (in-app) — A11")
+        else:
+            skip("DUE_REMINDER bildirimi", "PENDING/OVERDUE aidat bulunamadı")
+
+        pending_due = next((d for d in my_dues if d.get("status") == "PENDING"), None)
+        if pending_due:
+            r_paid = req(
+                "PATCH",
+                f"/buildings/{building_id}/dues/{pending_due['id']}/status",
+                token=manager_access,
+                json_body={"status": "PAID"},
+            )
+            expect_ok("PATCH due → PAID (DUE_PAID bildirimi)", r_paid)
+            r_n = req(
+                "GET",
+                "/notifications",
+                token=resident_access,
+                params={"unreadOnly": "true", "limit": "50"},
+            )
+            b_n = expect_ok("GET /notifications (DUE_PAID)", r_n)
+            if b_n:
+                n_items = (b_n.get("data") or {}).get("items") or []
+                due_paid = [x for x in n_items if x.get("type") == "DUE_PAID"]
+                if not due_paid:
+                    fail("resident inbox DUE_PAID", n_items)
+                    return 1
+                if not any(
+                    (x.get("data") or {}).get("dueId") == pending_due["id"] for x in due_paid
+                ):
+                    fail("DUE_PAID data.dueId", due_paid)
+                    return 1
+                ok("DUE_PAID bildirimi (in-app) — A10")
+        else:
+            skip("DUE_PAID bildirimi", "PENDING aidat bulunamadı")
 
     r = req("GET", "/me/dues", token=manager_access)
     expect_status("GET /me/dues (MANAGER → 403)", r, {403}, success_field=False)

@@ -1,0 +1,6 @@
+# Build configuration for Slang code generation
+targets:
+  $default:
+    builders:
+      slang_build_runner:
+        enabled: true

@@ -10,6 +10,7 @@ import {
   getDuesByBuilding,
   updateDueStatus,
   updateBuildingDueAmount,
+  postRemindBuildingDues,
 } from "../controllers/dueController.js";
 import { getTicketsByBuilding } from "../controllers/ticketController.js";
 import {
@@ -40,6 +41,7 @@ router.get("/", getBuildings);
 
 // Aidatlar — /:id/... bina detayından önce (okunabilirlik; Express yine de doğru eşleştirir)
 router.get("/:id/dues", validate(dueSchemas.getByBuilding), getDuesByBuilding);
+router.post("/:id/dues/remind", validate(dueSchemas.remind), postRemindBuildingDues);
 router.get(
   "/:id/expenses/summary",
   validate(expenseSchemas.summaryByBuilding),

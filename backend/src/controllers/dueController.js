@@ -4,6 +4,7 @@ import {
   getMyDuesService,
   updateBuildingDueAmountService,
 } from "../services/dueService.js";
+import { remindBuildingDuesService } from "../services/dueReminderService.js";
 
 /**
  * GET /api/v1/buildings/:id/dues
@@ -88,6 +89,34 @@ export const getMyDues = async (req, res, next) => {
     res.json({
       success: true,
       data: dues,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * POST /api/v1/buildings/:id/dues/remind
+ * Yönetici: PENDING/OVERDUE aidatlar için sakinlere hatırlatma
+ */
+export const postRemindBuildingDues = async (req, res, next) => {
+  try {
+    const { id: buildingId } = req.params;
+    const { month, year, dueIds } = req.body;
+
+    const data = await remindBuildingDuesService(buildingId, req.user.id, {
+      month,
+      year,
+      dueIds,
+    });
+
+    res.status(200).json({
+      success: true,
+      message:
+        data.reminded > 0
+          ? `${data.reminded} sakine aidat hatırlatması gönderildi.`
+          : "Hatırlatılacak aidat bulunamadı.",
+      data,
     });
   } catch (error) {
     next(error);

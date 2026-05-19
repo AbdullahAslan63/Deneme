@@ -32,7 +32,7 @@ aidatpanel/
     ├── prisma.config.ts
     ├── prisma/
     │   ├── schema.prisma
-    │   └── migrations/     # init, deleted_at+password_reset, dekont_system
+    │   └── migrations/     # init, user_deleted_at, dekont, ticket_created, …
     ├── src/
     │   ├── config/db.js    # Prisma 7 + @prisma/adapter-pg
     │   ├── routes/
@@ -58,7 +58,7 @@ aidatpanel/
 | Framework  | **Express 5**      | `helmet`, `cors`, `trust proxy`                                |
 | ORM        | **Prisma 7**       | `@prisma/adapter-pg` + `pg` pool                               |
 | Doğrulama  | **Zod**            | `src/middlewares/validate.js`                                  |
-| Veritabanı | PostgreSQL         | 3 migration uygulandı                                          |
+| Veritabanı | PostgreSQL         | Prisma migration’lar: `backend/prisma/migrations/` (bkz. `DOKUMANTASYON.md`) |
 | Auth       | JWT                | Access 15dk, refresh 30g, payload `rv` = `refreshTokenVersion` |
 | Rate limit | express-rate-limit | Genel 100/15dk; auth 5 (prod) / 50 (dev)                       |
 | Email      | Resend (fetch)     | Paket yok; `RESEND_API_KEY` opsiyonel                          |
@@ -358,7 +358,8 @@ Durum: ✅ uygulandı · ⬜ şema/plan var, kod yok · 🔶 kısmen (şema veya
 | DELETE | `/api/v1/buildings/:id`                    | Sil                                                |
 | GET    | `/api/v1/buildings/:id/dues`               | Query: `month`, `year`, `status`                   |
 | PATCH  | `/api/v1/buildings/:id/due-amount`         | `dueAmount`, `dueDay`, `currency`, `affectCurrent` |
-| PATCH  | `/api/v1/buildings/:id/dues/:dueId/status` | `status`, `paidAt`, `note`                         |
+| PATCH  | `/api/v1/buildings/:id/dues/:dueId/status` | `status`, `paidAt`, `note` — `PAID` → sakin `DUE_PAID` bildirimi |
+| POST   | `/api/v1/buildings/:id/dues/remind`        | `month`, `year` (birlikte) veya `dueIds` → `DUE_REMINDER` |
 | GET    | `/api/v1/buildings/:id/expenses`           | Query: `month`, `year`, `category`               |
 | GET    | `/api/v1/buildings/:id/expenses/summary`   | Query: `month`, `year` (**zorunlu**)             |
 | POST   | `/api/v1/buildings/:id/expenses`           | Gider kaydı                                      |
@@ -394,7 +395,7 @@ Durum: ✅ uygulandı · ⬜ şema/plan var, kod yok · 🔶 kısmen (şema veya
 | PATCH | `/api/v1/notifications/:id/read` | Alıcı |
 | PATCH | `/api/v1/notifications/read-all` | Alıcı |
 
-Otomatik: `TICKET_UPDATE` (talep notu / durum), `ANNOUNCEMENT` (yönetici duyuru). E2E seed: `POST /notifications/_e2e/seed` yalnızca `AIDATPANEL_E2E=1`.
+Otomatik: `TICKET_CREATED`, `TICKET_UPDATE`, `ANNOUNCEMENT`, `DUE_PAID`, `DUE_REMINDER` (tablo: Faz 2A+ bölümü). E2E seed: `POST /notifications/_e2e/seed` yalnızca `AIDATPANEL_E2E=1`.
 
 ### Apartments (MANAGER) — ✅
 
@@ -807,7 +808,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 - [ ] `POST .../dues/bulk` — yerine bina create + `due-amount` akışı
 - [ ] `ecosystem.config.js` / PM2 repoda yok
-- [ ] `docker-compose.yml`, `scripts/docker-test.sh` — `.env.example`’da referans var, repoda henüz yok
+- [ ] `scripts/docker-test.sh` — `.env.example`’da referans var, repoda henüz yok (`docker-compose.yml` kökte mevcut)
 
 ### Faz 2 — Tamamlama
 
@@ -831,7 +832,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 ## 📋 Faz 2A — Gider, Talep, Bildirim + Firebase FCM
 
-> **Ayrıntılı aşamalı plan:** [`PLAN.md`](PLAN.md) (backend **A0–A6 ✅**, Flutter B0–B6, FCM **zorunlu**).
+> **Ayrıntılı plan:** [`PLAN.md`](PLAN.md) · Backend push: [`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md) ✅ · Flutter: [`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
 
 **Hedef:** Expense / Ticket / Notification REST API; **Firebase Admin push zorunlu**; Flutter’da FCM + bildirim/talep/gider ekranları implementasyona hazır.
 
@@ -943,13 +944,15 @@ app.use("/api/v1/apartments/:apartmentId/tickets", apartmentTicketRoutes);
 // Her kullanıcı için Notification INSERT; fcmToken varsa push kuyruğu
 ```
 
-**Otomatik tetikleyiciler (Faz 2A):**
+**Otomatik tetikleyiciler (Faz 2A+):**
 
 | Olay | type | Alıcı |
 | ---- | ---- | ----- |
-| Yönetici talep güncellemesi | `TICKET_UPDATE` | Talep sahibi sakin |
+| Sakin yeni talep açar | `TICKET_CREATED` | Binanın yöneticisi |
+| Yönetici talep güncellemesi (not/durum) | `TICKET_UPDATE` | Talep sahibi sakin |
 | Yönetici duyuru | `ANNOUNCEMENT` | Binadaki tüm sakinler |
-| (Sonra) Aidat ödendi | `DUE_PAID` | İlgili sakin |
+| Aidat `PAID` işaretlendi | `DUE_PAID` | Dairedeki sakin |
+| `POST .../dues/remind` | `DUE_REMINDER` | İlgili PENDING/OVERDUE sakinler |
 
 **FCM katmanı (zorunlu):** `config/firebase.js` + `pushService.js` — production’da Admin SDK şart; her `createForUsers` sonrası push. Ayrıntı: `PLAN.md`.
 

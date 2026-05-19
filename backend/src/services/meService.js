@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../config/db.js";
 import { HttpError } from "../utils/httpError.js";
+import { saveFcmToken } from "./fcmTokenService.js";
 
 /** API yanıtlarında kullanıcı için güvenli alanlar (`passwordHash`, `refreshTokenVersion` yok). */
 export const userPublicSelect = {
@@ -110,17 +111,7 @@ export async function updateLanguageService(userId, language) {
 }
 
 export async function updateFcmTokenService(userId, fcmToken) {
-  const ok = await prisma.user.findFirst({
-    where: { id: userId, deletedAt: null },
-    select: { id: true },
-  });
-  if (!ok) {
-    throw new HttpError(401, "Kullanıcı bulunamadı.");
-  }
-  await prisma.user.update({
-    where: { id: userId },
-    data: { fcmToken },
-  });
+  await saveFcmToken(userId, fcmToken);
 }
 
 /**

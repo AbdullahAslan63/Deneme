@@ -6,6 +6,8 @@ import {
   assertCanAccessTicket,
 } from "../utils/access.js";
 import { userPublicSelect } from "./meService.js";
+import { NOTIFICATION_TYPES } from "../constants/notificationConstants.js";
+import { TICKET_CREATED_MANAGER } from "../constants/notificationTemplates.js";
 import { createForUsers } from "./notificationService.js";
 
 const ALLOWED_STATUS_TRANSITIONS = {
@@ -31,6 +33,30 @@ const STATUS_NOTIFY_COPY = {
     body: (ticket) => `"${ticket.title}" talebiniz kapatıldı.`,
   },
 };
+
+/**
+ * Yeni talep — binanın yöneticisine in-app bildirim + FCM (Aşama A8).
+ */
+async function notifyBuildingManager(ticket) {
+  const managerId = ticket.apartment?.building?.managerId;
+  if (!managerId) return;
+
+  const apartmentNumber = ticket.apartment?.number ?? "?";
+
+  await createForUsers([managerId], {
+    type: NOTIFICATION_TYPES.TICKET_CREATED,
+    title: TICKET_CREATED_MANAGER.title,
+    body: TICKET_CREATED_MANAGER.body(apartmentNumber, ticket.title),
+    data: {
+      ticketId: ticket.id,
+      buildingId: ticket.apartment?.buildingId ?? "",
+      apartmentId: ticket.apartmentId,
+      category: ticket.category,
+      status: ticket.status,
+      route: "/manager-dashboard",
+    },
+  });
+}
 
 /**
  * Talep sahibi sakine in-app bildirim + FCM (Aşama A3).
@@ -59,6 +85,7 @@ const ticketIncludeList = {
       number: true,
       floor: true,
       buildingId: true,
+      building: { select: { managerId: true } },
       resident: { select: userPublicSelect },
     },
   },
@@ -157,6 +184,8 @@ export async function createTicketService(apartmentId, userId, { title, descript
     include: ticketIncludeList,
   });
 
+  await notifyBuildingManager(ticket);
+
   return formatTicketRow(ticket);
 }
 
@@ -182,7 +211,7 @@ export async function addTicketUpdateService(ticketId, managerId, message) {
     throw new HttpError(409, "Kapalı veya sonuçlanmış talebe not eklenemez.");
   }
 
-  const update = await prisma.ticket.update({
+  await prisma.ticket.update({
     where: { id: ticketId },
     data: {
       updates: {
@@ -192,9 +221,6 @@ export async function addTicketUpdateService(ticketId, managerId, message) {
         },
       },
       updatedAt: new Date(),
-    },
-    include: {
-      updates: { orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -206,7 +232,15 @@ export async function addTicketUpdateService(ticketId, managerId, message) {
     status: ticket.status,
   });
 
-  return update;
+  const full = await prisma.ticket.findUnique({
+    where: { id: ticketId },
+    include: {
+      ...ticketIncludeList,
+      updates: { orderBy: { createdAt: "asc" } },
+    },
+  });
+
+  return formatTicketRow(full);
 }
 
 export async function changeTicketStatusService(ticketId, managerId, nextStatus) {

@@ -5,7 +5,7 @@
 > **Backend referans:** `backend/src/`, `backend/prisma/schema.prisma`, `backend/test.py`  
 > **Plan:** [`PLAN.md`](PLAN.md) Bölüm B (B0–B6) · Özet: [`AIDATPANEL.md`](AIDATPANEL.md)
 
-**Son senkron:** Backend Faz 2A (A0–A6) tamamlandı · API tabanı: `/api/v1`
+**Son senkron:** Backend Faz 2A+ push (A7–A12) tamamlandı · API tabanı: `/api/v1` · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
 
 ---
 
@@ -13,7 +13,7 @@
 
 1. **Backend tek doğruluk kaynağıdır.** Bu dosyada veya tasarımda yer alan ancak aşağıdaki endpoint/JSON örneklerinde **olmayan** alanları modele, UI’ya veya mock’a **eklemeyin**.
 2. **Prisma şemasında olup API’de dönmeyen alanları kullanmayın** (ör. `User.fcmToken` yanıtta asla gelmez; `Expense.building` nesnesi liste yanıtında yok).
-3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, aidat push (`DUE_PAID` / `DUE_REMINDER`), WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama.
+3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama. (`DUE_PAID` / `DUE_REMINDER` / `TICKET_CREATED` push **üretilir** — UI ve deep link B2–B3’te bağlanmalı.)
 4. **Enum değerleri** yalnızca backend’in kabul ettiği string’ler; ek değer uydurmayın.
 5. **Tutar alanları:** Gider `amount` ve özet `totalAmount` / `byCategory[].amount` API’de **string** gelir (`"1250.50"`). Parse ederken `double.tryParse` kullanın; gönderirken gider create/update body’de **number** (JSON float) gönderin.
 6. **Tarih alanları:** İstek gövdelerinde **ISO 8601** (`2026-05-15T10:00:00.000Z`). Yanıtlarda `createdAt`, `updatedAt`, `date` ISO string.
@@ -77,11 +77,14 @@ Backend `Notification.data` Prisma `Json?`. Faz 2A push + DB için örnek içeri
 
 | `type` | `data` anahtarları (hepsi string FCM’de; DB’de karışık tip olabilir) |
 |--------|---------------------------------------------------------------------|
-| `TICKET_UPDATE` | `ticketId`, `buildingId`, `status`, `route` (ör. `"/resident-dashboard"`) |
+| `TICKET_CREATED` | `ticketId`, `buildingId`, `apartmentId`, `category`, `status`, `route` |
+| `TICKET_UPDATE` | `ticketId`, `buildingId`, `status`, `route` |
 | `ANNOUNCEMENT` | `buildingId`, `route` |
+| `DUE_PAID` | `dueId`, `buildingId`, `apartmentId`, `month`, `year`, `route` |
+| `DUE_REMINDER` | `dueId`, `buildingId`, `apartmentId`, `month`, `year`, `route` |
 | `SYSTEM` | E2E only; örn. `route` |
 
-**Faz 2A’da oluşmayan tipler** (enum’da var, API üretmez): `DUE_REMINDER`, `DUE_PAID`, `DEKONT_*`. Listede görünürse genel bildirim olarak gösterin; özel ekran bağlamayın.
+**Faz 2B’de (henüz API yok):** `DEKONT_*` — listede genel bildirim gösterin.
 
 ---
 
@@ -95,7 +98,7 @@ Backend `Notification.data` Prisma `Json?`. Faz 2A push + DB için örnek içeri
 
 **Yanıt:** `{ success, message?, data: <PublicUser güncellenmiş> }` — `fcmToken` döndürülmez.
 
-**Öneri:** Login/join sonrası + `FirebaseMessaging.instance.onTokenRefresh` → `PUT /me/fcm-token`. Logout’ta backend’de token temizleme endpoint’i **yok**; boş string göndermeyin.
+**Öneri:** Login/join sonrası + `FirebaseMessaging.instance.onTokenRefresh` → `PUT /me/fcm-token`. `POST /auth/logout` backend’de `fcmToken` alanını **null** yapar; mobilde boş string PUT **yapmayın**.
 
 ### 3.2 FCM `data` payload (push)
 
@@ -103,7 +106,7 @@ Tüm değerler **string**. Backend `notificationService.buildPushData`:
 
 | Anahtar | Zorunlu | Açıklama |
 |---------|---------|----------|
-| `type` | Evet | `TICKET_UPDATE`, `ANNOUNCEMENT`, … |
+| `type` | Evet | `TICKET_CREATED`, `TICKET_UPDATE`, `ANNOUNCEMENT`, `DUE_PAID`, `DUE_REMINDER`, … |
 | `notificationId` | Evet | DB bildirim id |
 | `ticketId` | Talep bildirimlerinde | Deep link |
 | `buildingId` | Çoğu olayda | Bağlam |
@@ -112,8 +115,10 @@ Tüm değerler **string**. Backend `notificationService.buildPushData`:
 
 **Tap yönlendirme önerisi:**
 
-- `TICKET_UPDATE` + `ticketId` → `/tickets/:ticketId` (veya dashboard alt rota)
+- `TICKET_CREATED` + `ticketId` → yönetici talep detay / liste
+- `TICKET_UPDATE` + `ticketId` → `/tickets/:ticketId` (sakin)
 - `ANNOUNCEMENT` → bildirim listesi veya `route`
+- `DUE_PAID` / `DUE_REMINDER` → `route` veya aidat sekmesi
 - `notificationId` ile liste senkronu: `GET /notifications` sonra okundu işaretle
 
 **Development:** `FIREBASE_SERVICE_ACCOUNT_JSON` yoksa push atlanır; in-app bildirim yine oluşur.
@@ -385,16 +390,41 @@ Not eklendiğinde: `Talebiniz güncellendi` + mesaj özeti.
 {
   "created": 2,
   "pushSent": 1,
-  "pushFailed": 0
+  "pushFailed": 0,
+  "pushSkipped": 0
 }
 ```
 
 - `created`: DB’ye yazılan bildirim sayısı (binadaki aktif sakinler: `deletedAt` null, `apartmentId` dolu).
-- `pushSent` / `pushFailed`: FCM sonuçları; token yoksa `pushSent` 0 olabilir.
+- `pushSent` / `pushFailed` / `pushSkipped`: FCM sonuçları; token yoksa veya Firebase kapalıysa `pushSkipped` artar.
 
 **Alıcılar:** Binadaki tüm aktif sakinler. Tip: `ANNOUNCEMENT`.
 
 **Ayrı “duyuru listesi” endpoint’i yok** — duyurular sakin/yönetici `GET /notifications` içinde görünür.
+
+---
+
+## 7.1 Aidat hatırlatma (MANAGER)
+
+| Method | Path | Body |
+|--------|------|------|
+| POST | `/buildings/:buildingId/dues/remind` | `{ "month"?: 1-12, "year"?: 2000-2100, "dueIds"?: uuid[] }` |
+
+- `month` ve `year` **birlikte** gönderilmeli veya ikisi de atlanır (tüm bina PENDING/OVERDUE).
+- Yalnızca `PENDING` ve `OVERDUE` aidatlar; her sakin için en fazla bir bildirim (aynı çağrıda).
+
+**200 `data`:**
+
+```json
+{
+  "reminded": 1,
+  "pushSent": 0,
+  "pushFailed": 0,
+  "pushSkipped": 1
+}
+```
+
+Tip: `DUE_REMINDER`. Otomatik tetikleyici: aidat `PATCH .../status` → `PAID` için `DUE_PAID` (ayrı endpoint yok).
 
 ---
 
@@ -620,7 +650,7 @@ python3 test.py
 | Talep silme / sakin yanıt | Endpoint yok |
 | Gider soft-delete | `deletedAt` şemada yok |
 | Abonelik kilidi | Faz 2A dışı |
-| `DUE_PAID` push UI | Backend üretmiyor |
+| `DUE_PAID` / `DUE_REMINDER` özel ekran | Opsiyonel; backend üretir, deep link B2 |
 | Dekont bildirim tipleri | Dekont API yok |
 | `GET /announcements` | Yok; bildirim kutusu kullanılır |
 | Resident gider ekranı | API 403 |
@@ -637,6 +667,7 @@ python3 test.py
 | Gider | `backend/src/services/expenseService.js` |
 | Bildirim + push | `backend/src/services/notificationService.js` |
 | Duyuru | `backend/src/services/announcementService.js` |
+| Aidat hatırlatma | `backend/src/services/dueReminderService.js` |
 | Şema | `backend/prisma/schema.prisma` |
 | Smoke test | `backend/test.py` |
 

@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  notificationSchemas,
+  fcmSchemas,
+} from "../validators/notificationValidator.js";
 
 /**
  * Zod schema validation middleware'i oluşturur
@@ -181,14 +185,7 @@ export const meSchemas = {
     }),
   },
 
-  updateFcmToken: {
-    body: z.object({
-      fcmToken: z
-        .string()
-        .min(10, "FCM token çok kısa")
-        .max(4096, "FCM token çok uzun"),
-    }),
-  },
+  updateFcmToken: fcmSchemas.updateToken,
 };
 
 /**
@@ -380,6 +377,36 @@ export const dueSchemas = {
     }),
   },
 
+  remind: {
+    params: z.object({
+      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
+    }),
+    body: z
+      .object({
+        month: z
+          .number()
+          .int("Ay tam sayı olmalıdır")
+          .min(1, "Ay 1-12 arasında olmalıdır")
+          .max(12, "Ay 1-12 arasında olmalıdır")
+          .optional(),
+        year: z
+          .number()
+          .int("Yıl tam sayı olmalıdır")
+          .min(2000, "Geçerli bir yıl giriniz")
+          .max(2100, "Geçerli bir yıl giriniz")
+          .optional(),
+        dueIds: z
+          .array(z.string().uuid("Geçerli bir aidat ID'si giriniz"))
+          .optional(),
+      })
+      .refine(
+        (data) =>
+          (data.month == null && data.year == null) ||
+          (data.month != null && data.year != null),
+        { message: "Ay ve yıl birlikte gönderilmelidir." }
+      ),
+  },
+
   updateAmount: {
     params: z.object({
       id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
@@ -552,38 +579,4 @@ export const ticketSchemas = {
   },
 };
 
-/** Faz 2A — Bildirim (Aşama A1) */
-export const notificationSchemas = {
-  list: {
-    query: z.object({
-      unreadOnly: z
-        .string()
-        .optional()
-        .transform((v) => {
-          if (v === "true") return true;
-          if (v === "false") return false;
-          return undefined;
-        }),
-      limit: z
-        .string()
-        .optional()
-        .transform((v) => (v ? parseInt(v, 10) : 20))
-        .pipe(z.number().int().min(1).max(50)),
-      cursor: z.string().uuid("Geçersiz cursor").optional(),
-    }),
-  },
-  markRead: {
-    params: z.object({
-      id: z.string().uuid("Geçerli bir bildirim ID'si giriniz"),
-    }),
-  },
-  announce: {
-    params: z.object({
-      id: z.string().uuid("Geçerli bir bina ID'si giriniz"),
-    }),
-    body: z.object({
-      title: z.string().min(1).max(120),
-      body: z.string().min(1).max(2000),
-    }),
-  },
-};
+export { notificationSchemas };

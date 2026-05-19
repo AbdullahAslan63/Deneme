@@ -1,0 +1,18 @@
+# AidatPanel — Google Play upload imzalama
+#
+# 1) Bu dosyayı kopyalayın:
+#    Windows: copy key.properties.example key.properties
+#    PowerShell: Copy-Item key.properties.example key.properties
+#
+# 2) Keystore oluşturun (android klasöründeyken; şifreleri güvenli saklayın):
+#    keytool -genkeypair -v -keystore upload-keystore.jks -storetype JKS -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# 3) Aşağıdaki dört satırı kendi değerlerinizle doldurun. key.properties ve .jks
+#    dosyaları Git'e eklenmez (.gitignore).
+#
+# storeFile: android/ klasörüne göre göreli yol (çoğu kurulum: upload-keystore.jks)
+
+storePassword=BURAYA_STORE_SIFRESI
+keyPassword=BURAYA_KEY_SIFRESI
+keyAlias=upload
+storeFile=upload-keystore.jks

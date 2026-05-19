@@ -1,5 +1,28 @@
 # Yerel ortam
 .env
 .env.local
+.env.*.local
 
-# Docker PostgreSQL (compose named volume — host klasörü yok)
+# Backend
+backend/node_modules/
+backend/dist/
+backend/build/
+backend/coverage/
+backend/e2e-data/
+backend/.env
+
+# Mobile / Flutter
+mobile/.dart_tool/
+mobile/.pub/
+mobile/build/
+mobile/.flutter-plugins-dependencies
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

@@ -2,7 +2,12 @@ import {
   listForUser,
   markRead,
   markAllRead,
+  seedDevNotification,
 } from "../services/notificationService.js";
+import {
+  NOTIFICATION_MESSAGES,
+  DEV_SEED_NOTIFICATION,
+} from "../constants/notificationConstants.js";
 import { HttpError } from "../utils/httpError.js";
 
 const handleHttp = (err, res, next) => {
@@ -17,6 +22,7 @@ const handleHttp = (err, res, next) => {
 
 /**
  * GET /api/v1/notifications
+ * Query: unreadOnly, limit (1-50), cursor (uuid)
  */
 export const listNotifications = async (req, res, next) => {
   try {
@@ -40,7 +46,7 @@ export const markNotificationRead = async (req, res, next) => {
     const data = await markRead(req.user.id, req.params.id);
     res.status(200).json({
       success: true,
-      message: "Bildirim okundu olarak işaretlendi.",
+      message: NOTIFICATION_MESSAGES.MARK_READ,
       data,
     });
   } catch (err) {
@@ -56,7 +62,24 @@ export const markAllNotificationsRead = async (req, res, next) => {
     const data = await markAllRead(req.user.id);
     res.status(200).json({
       success: true,
-      message: "Tüm bildirimler okundu olarak işaretlendi.",
+      message: NOTIFICATION_MESSAGES.MARK_ALL_READ,
+      data,
+    });
+  } catch (err) {
+    handleHttp(err, res, next);
+  }
+};
+
+/**
+ * POST /api/v1/notifications/dev/seed
+ * Yalnızca development veya AIDATPANEL_E2E=1
+ */
+export const createDevSeedNotification = async (req, res, next) => {
+  try {
+    const data = await seedDevNotification(req.user.id, DEV_SEED_NOTIFICATION);
+    res.status(201).json({
+      success: true,
+      message: NOTIFICATION_MESSAGES.DEV_SEED_OK,
       data,
     });
   } catch (err) {

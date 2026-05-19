@@ -244,7 +244,10 @@ const logout = async (req, res, next) => {
   try {
     await prisma.user.update({
       where: { id: req.user.id },
-      data: { refreshTokenVersion: { increment: 1 } },
+      data: {
+        refreshTokenVersion: { increment: 1 },
+        fcmToken: null,
+      },
     });
     res.status(200).json({
       success: true,

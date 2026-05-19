@@ -1,6 +1,48 @@
 import admin from "firebase-admin";
+import { existsSync, readFileSync } from "node:fs";
+import { isAbsolute, resolve } from "node:path";
 
 let initialized = false;
+
+function resolveCredentialPath(candidate) {
+  const trimmed = candidate.trim();
+  return isAbsolute(trimmed) ? trimmed : resolve(process.cwd(), trimmed);
+}
+
+/** JSON string veya service account dosya yolu. */
+function readCredentialFile(path) {
+  const resolved = resolveCredentialPath(path);
+  if (!existsSync(resolved)) {
+    throw new Error(
+      `Service account dosyası bulunamadı: ${resolved} (FIREBASE_SERVICE_ACCOUNT_JSON veya FIREBASE_SERVICE_ACCOUNT_PATH)`
+    );
+  }
+  return readFileSync(resolved, "utf8");
+}
+
+function loadServiceAccountJson() {
+  const fromEnv = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  if (fromEnv) {
+    // Tek satır JSON (production önerisi)
+    if (fromEnv.startsWith("{")) {
+      return fromEnv;
+    }
+    // Sık yapılan hata: env'ye dosya adı/yolu yazılmış — dosyadan oku
+    return readCredentialFile(fromEnv);
+  }
+
+  const path = process.env.FIREBASE_SERVICE_ACCOUNT_PATH?.trim();
+  if (path) {
+    if (process.env.NODE_ENV === "production" && !path.startsWith("/")) {
+      console.warn(
+        "[firebase] Production'da FIREBASE_SERVICE_ACCOUNT_PATH yerine FIREBASE_SERVICE_ACCOUNT_JSON (tek satır JSON) önerilir."
+      );
+    }
+    return readCredentialFile(path);
+  }
+
+  return null;
+}
 
 export function isFirebaseReady() {
   return initialized;
@@ -12,7 +54,7 @@ export function isFirebaseReady() {
  */
 export function initFirebase() {
   const isProduction = process.env.NODE_ENV === "production";
-  const raw = process.env.FIREBASE_SERVICE_ACCOUNT_JSON?.trim();
+  const raw = loadServiceAccountJson();
 
   if (!raw) {
     if (isProduction) {

@@ -3,18 +3,31 @@ config();
 
 import { PrismaClient } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaNeon } from "@prisma/adapter-neon";
 import pg from "pg";
+
+const connectionString = process.env.DATABASE_URL?.trim();
+if (!connectionString) {
+  console.error(
+    "DATABASE_URL tanımlı değil — backend/.env içinde bağlantı dizesini ayarlayın."
+  );
+  process.exit(1);
+}
+
+const useNeon =
+  /neon\.tech/i.test(connectionString) ||
+  process.env.PRISMA_DATABASE_ADAPTER === "neon";
 
 // Development'da sadece connection status göster - güvenlik açığı düzeltildi
 if (process.env.NODE_ENV === "development") {
-  console.log("Database connection status: Checking...");
+  console.log(
+    `Database connection status: Checking... (${useNeon ? "Neon" : "PostgreSQL"})`
+  );
 }
 
-const pool = new pg.Pool({
-  connectionString: process.env.DATABASE_URL,
-});
-
-const adapter = new PrismaPg(pool);
+const adapter = useNeon
+  ? new PrismaNeon({ connectionString })
+  : new PrismaPg(new pg.Pool({ connectionString }));
 
 const prisma = new PrismaClient({
   log:

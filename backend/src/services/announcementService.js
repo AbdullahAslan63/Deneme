@@ -1,5 +1,6 @@
 import { prisma } from "../config/db.js";
 import { assertManagerOwnsBuilding } from "../utils/access.js";
+import { NOTIFICATION_TYPES } from "../constants/notificationConstants.js";
 import { createForUsers } from "./notificationService.js";
 
 /**
@@ -32,7 +33,7 @@ export async function sendBuildingAnnouncementService(
   }
 
   const result = await createForUsers(userIds, {
-    type: "ANNOUNCEMENT",
+    type: NOTIFICATION_TYPES.ANNOUNCEMENT,
     title,
     body,
     data: {
@@ -45,5 +46,6 @@ export async function sendBuildingAnnouncementService(
     created: result.dbCount,
     pushSent: result.pushSent,
     pushFailed: result.pushFailed,
+    pushSkipped: result.pushSkipped,
   };
 }

@@ -1,5 +1,6 @@
 import { prisma } from "../config/db.js";
 import { getMessaging, isFirebaseReady } from "../config/firebase.js";
+import { clearFcmToken } from "../services/fcmTokenService.js";
 
 const INVALID_TOKEN_CODES = new Set([
   "messaging/invalid-registration-token",
@@ -48,10 +49,7 @@ export async function sendToToken(fcmToken, { title, body, data = {} }) {
   } catch (err) {
     const code = err.code ?? err.errorInfo?.code;
     if (code && INVALID_TOKEN_CODES.has(code)) {
-      await prisma.user.updateMany({
-        where: { fcmToken },
-        data: { fcmToken: null },
-      });
+      await clearFcmToken(fcmToken);
       console.warn("[push] Geçersiz token temizlendi:", code);
     } else {
       console.warn("[push] Gönderim hatası:", code || err.message);

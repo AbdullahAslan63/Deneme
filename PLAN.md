@@ -2,7 +2,49 @@
 
 > **Kaynak:** `AIDATPANEL.md`  
 > **Hedef:** Gider, talep ve bildirim sisteminin **backend API + Firebase FCM + Flutter entegrasyonu** ile uçtan uca tamamlanması. Mobil ekip, API ve push sözleşmesine göre doğrudan UI bağlayabilsin.  
-> **Sözleşme:** `/api/v1` · `mobile/lib/core/constants/api_constants.dart`
+> **Sözleşme:** `/api/v1` · `mobile/lib/core/constants/api_constants.dart`  
+> **Son güncelleme:** 2026-05-19
+
+---
+
+## Proje yapısı (güncel workspace)
+
+Tek repoda **backend + mobil** birlikte tutulur:
+
+```
+Deneme/
+├── backend/          # Node.js API (Express 5, Prisma 7)
+├── mobile/           # Flutter uygulaması (Faz 1 ✅, Faz 2A UI ⬜)
+├── docker-compose.yml
+├── AIDATPANEL.md     # Master referans
+├── PLAN.md           # Bu dosya
+├── FLUTTER-BACKEND.md
+├── ANALIZ_RAPORU.md  # Kod ↔ doküman analizi (tarihli snapshot)
+├── DOKUMANTASYON.md  # Tüm .md dosyaları indeksi ve bütünlük kuralları
+├── PLAN_BACKEND_PUSH.md  # Backend push A7–A12 ✅
+├── FLUTTER_ENTEGRASYON_PLANI.md  # Mobil ekip / AI (B-ANALYZE → B0–B6)
+└── YUSUF_YAPILANLAR_BİLDİRİM.md  # Bildirim checkpoint + Postman notları
+```
+
+### Git dalları
+
+| Dal | İçerik |
+|-----|--------|
+| `main` | Yalnızca `AIDATPANEL.md` |
+| `backend/api` | Backend + dokümantasyon (+ `mobile/` birleşik workspace hedefi) |
+| `mobile/flutter` | Mobil + (isteğe bağlı) backend birleşimi |
+
+---
+
+## Genel ilerleme özeti (2026-05-19)
+
+| Katman | Faz 1 (MVP) | Faz 2A | Not |
+|--------|-------------|--------|-----|
+| **Backend API** | ✅ | ✅ | Postman + `test.py` ile doğrulandı |
+| **Flutter mobil** | ✅ ~%90 | ⬜ ~%0 | Auth, bina, aidat, profil; FCM/B2–B6 bekliyor |
+| **Uçtan uca Faz 2A** | — | 🔶 %50 | Backend hazır; mobil UI bağlantısı yok |
+
+Detaylı gap analizi: `ANALIZ_RAPORU.md`
 
 ---
 
@@ -12,7 +54,7 @@
 |---|---|
 | **Kapsam** | Expense, Ticket, Notification REST API; **zorunlu** Firebase Admin push; Flutter FCM + bildirim/talep/gider katmanları |
 | **Kapsam dışı** | Dekont/OCR, fiş dosya upload, RevenueCat kilidi, WhatsApp/SMS, PDF rapor |
-| **Tahmini süre** | Backend ~5 gün · Flutter ~4–5 gün · **toplam ~9–10 gün** |
+| **Tahmini süre** | Backend ~5 gün ✅ · Flutter Faz 2A ~4–5 gün ⬜ · **kalan ~4–5 gün** |
 | **Mimari** | Backend: `service` → `controller` → `route` → Zod · Flutter: `data` → `domain` → `presentation` + Riverpod |
 
 ---
@@ -127,11 +169,17 @@ app.use("/api/v1/apartments/:apartmentId/tickets", apartmentTicketRoutes);
 
 **Amaç:** Merkezi servis; **DB + FCM birlikte**.
 
-### Dosyalar
+### Dosyalar (uygulandı)
 
-- `services/notificationService.js` — `createForUsers` içinde: `createMany` → `pushService.sendBatch`
+- `services/notificationService.js` — `createForUsers`: transaction içinde DB kaydı → sıralı FCM
+- `services/fcmTokenService.js` — `PUT /me/fcm-token`, invalid token temizliği
+- `services/pushService.js` — `sendToToken`, `sendToUser`
+- `validators/notificationValidator.js` + `constants/notificationConstants.js`
+- `utils/notificationPayload.js` — FCM `data` sözleşmesi
 - `controllers/notificationController.js`
-- `routes/notificationRoutes.js`
+- `routes/notificationRoutes.js` — `POST /dev/seed`, `POST /_e2e/seed` (dev/E2E)
+- `postman/AidatPanel-Notifications.postman_collection.json`
+- `scripts/notificationDemo.js` — `npm run demo:notifications`
 
 ### API
 
@@ -141,11 +189,11 @@ app.use("/api/v1/apartments/:apartmentId/tickets", apartmentTicketRoutes);
 | PATCH | `/api/v1/notifications/:id/read` |
 | PATCH | `/api/v1/notifications/read-all` |
 
-### `createForUsers` akışı
+### `createForUsers` akışı (kod)
 
-1. `prisma.notification.createMany`
-2. Her alıcı için `fcmToken` varsa FCM gönder (`notificationId`, `type`, … `data`)
-3. Dönüş: `{ dbCount, pushSent, pushFailed }` (duyuru yanıtında kullanılır)
+1. Transaction: her alıcı için `prisma.notification.create`
+2. Her alıcı için `fcmToken` varsa `pushService.sendToToken` (`notificationId`, `type`, … `data`)
+3. Dönüş: `{ dbCount, pushSent, pushFailed, pushSkipped, notifications[] }`
 
 ### Çıkış kriteri
 
@@ -248,9 +296,31 @@ Yanıt: `{ created, pushSent, pushFailed }`
 
 ---
 
-# BÖLÜM B — Flutter (implementasyona hazır)
+# BÖLÜM B — Flutter
 
-> Backend Aşama A1 bittikten sonra paralel başlanabilir; **Aşama B1 (Firebase)** en erken başlar.
+> Backend Faz 2A ✅ tamam. Sıradaki iş: **B0 → B6**. Faz 1 mobil temeli aşağıda özetlenmiştir.
+
+## Faz 1 — Flutter (tamamlandı ✅)
+
+| Özellik | Durum | Not |
+|---------|--------|-----|
+| Auth (login, register, join, forgot/reset) | ✅ | GoRouter + Riverpod |
+| Yönetici: bina, daire, davet, aidat | ✅ | `ManagerDashboardScreen` 4 sekme |
+| Sakin: aidatlarım | ✅ | `GET /me/dues` |
+| Profil, şifre, dil, hesap silme | ✅ | `SettingsTab` |
+| i18n TR/EN (Slang) | ✅ | |
+| Dev preview | ✅ | `main_dev.dart` + mock repository |
+| Dio + JWT refresh | ✅ | Production URL: `api.aidatpanel.com` |
+
+**Faz 1 bilinçli farklar:** Yönetici 4 sekme (gider/bildirim ayrı tab yok); sakin “Talepler” sekmesi placeholder.
+
+**Hazır ama kullanılmayan:** `ApiConstants` içinde Faz 2 path’leri tanımlı; `firebase_core` / `firebase_messaging` pubspec’te var, init yok.
+
+---
+
+## Faz 2A — Flutter (B0–B6, başlanmadı ⬜)
+
+> **Aşama B1 (Firebase)** en erken başlar; backend API beklemeye gerek yok.
 
 ## Aşama B0 — Firebase projesi ve dosyalar (0,5 gün)
 
@@ -320,6 +390,8 @@ mobile/lib/features/notifications/
 | Liste | `GET /notifications` |
 | Okundu | `PATCH /notifications/:id/read` |
 | Tümü okundu | `PATCH /notifications/read-all` |
+
+**Mobil eksik:** `ApiConstants.notificationsReadAll` sabiti henüz tanımlı değil — B2’de ekle.
 
 ### UI
 
@@ -429,28 +501,34 @@ mobile/lib/features/expenses/
 
 ---
 
-# Dosya ağacı (hedef — tam stack)
+# Dosya ağacı
+
+### Backend (mevcut ✅)
 
 ```
 backend/src/
 ├── config/firebase.js
+├── constants/notificationConstants.js
+├── validators/notificationValidator.js
+├── utils/notificationPayload.js
 ├── services/
-│   ├── notificationService.js
-│   ├── pushService.js
-│   ├── ticketService.js
-│   └── expenseService.js
-└── ...
-
-mobile/lib/
-├── firebase_options.dart
-├── core/notifications/
-│   ├── firebase_bootstrap.dart
-│   ├── fcm_service.dart
-│   └── notification_payload.dart
-├── features/notifications/   # B2
-├── features/tickets/         # B3
-└── features/expenses/        # B4
+│   ├── notificationService.js, pushService.js, fcmTokenService.js
+│   ├── ticketService.js, expenseService.js, announcementService.js
+│   └── ...
+├── postman/AidatPanel-Notifications.postman_collection.json
+└── scripts/notificationDemo.js
 ```
+
+### Mobile — mevcut vs hedef
+
+| Yol | Mevcut | Hedef (B0–B4) |
+|-----|--------|----------------|
+| `features/auth`, `buildings`, `dues`, `apartments`, `profile` | ✅ kod | — |
+| `features/notifications/` | ⬜ `.gitkeep` | B2 |
+| `features/tickets/` | ⬜ `.gitkeep` | B3 |
+| `features/expenses/` | ⬜ `.gitkeep` | B4 |
+| `core/notifications/` | ⬜ yok | B1 |
+| `firebase_options.dart` | ⬜ yok | B0 |
 
 ---
 
@@ -465,16 +543,21 @@ mobile/lib/
 
 ### Flutter
 
-- [ ] Firebase init + FCM token yaşam döngüsü
+- [x] Faz 1: Auth, bina, aidat, profil, i18n, dev mock
+- [ ] Firebase init + FCM token yaşam döngüsü (B0–B1)
 - [ ] Push alınıyor (foreground + background + tap)
-- [ ] Bildirim, talep, gider ekranları gerçek API’ye bağlı
-- [ ] `ApiConstants` ile path uyumu
-- [ ] `main_dev` mock’ları güncel
+- [ ] Bildirim, talep, gider ekranları gerçek API'ye bağlı (B2–B4)
+- [ ] `ApiConstants` ile path uyumu (`notificationsReadAll` dahil)
+- [ ] `main_dev` mock'ları: notification / ticket / expense (B5)
 
 ### Dokümantasyon
 
 - [x] `AIDATPANEL.md` — FCM zorunlu, endpoint ✅
 - [x] `PLAN.md` ilerleme tablosu güncel
+- [x] `ANALIZ_RAPORU.md` — tam proje analizi
+- [x] `YUSUF_YAPILANLAR_BİLDİRİM.md` — bildirim Postman checkpoint
+- [x] `DOKUMANTASYON.md` — dokümantasyon indeksi
+- [x] `PLAN_BACKEND_PUSH.md`, `FLUTTER_ENTEGRASYON_PLANI.md`
 
 ---
 
@@ -491,11 +574,13 @@ mobile/lib/
 | A4 — Gider API | ✅ |
 | A5 — Duyuru + toplu push | ✅ |
 | A6 — Test & dokümantasyon | ✅ |
+| A7–A12 — Push tamamlama | ✅ ([`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md)) |
 
 ## Flutter
 
 | Aşama | Durum |
 |-------|--------|
+| **F1 — MVP (auth, bina, aidat, profil)** | ✅ |
 | B0 — Firebase dosyaları | ⬜ |
 | B1 — FCM çekirdek | ⬜ |
 | B2 — Bildirim UI + API | ⬜ |
@@ -504,6 +589,15 @@ mobile/lib/
 | B5 — Dashboard + main_dev | ⬜ |
 | B6 — Test & E2E | ⬜ |
 
+## Öncelik sırası (sıradaki iş)
+
+1. **[`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) B-ANALYZE** — güncel tasarım/kod gap raporu
+2. **B0–B1** — Firebase + `PUT /me/fcm-token`
+3. **B2** — Bildirim listesi (Postman: `backend/postman/`)
+4. **B3** — Talep sekmesi (sakin placeholder kaldır)
+5. **B4** — Gider UI
+6. **B5–B6** — Dashboard, mock, E2E checklist
+
 ---
 
 ## Sonraki faz (kapsam dışı)
@@ -511,9 +605,9 @@ mobile/lib/
 | Faz | İçerik |
 |-----|--------|
 | 2B | `receiptUrl` dosya upload |
-| 2C | Dekont/OCR, `DUE_PAID` push |
+| 2B | Dekont/OCR, `DEKONT_*` push |
 | 3 | RevenueCat, WhatsApp, PDF |
 
 ---
 
-*Son güncelleme: FCM zorunlu; plan backend + Flutter uçtan uca genişletildi.*
+*Son güncelleme: 2026-05-19 — `mobile/` workspace'e eklendi; backend Faz 2A ✅; Flutter Faz 2A (B0–B6) sırada.*
