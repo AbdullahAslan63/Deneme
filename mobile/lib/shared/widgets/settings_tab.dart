@@ -51,7 +51,7 @@ class SettingsTab extends ConsumerWidget {
               _SettingsTile(
                 icon: Icons.notifications_outlined,
                 title: context.t.common.notifications,
-                onTap: () => _showComingSoon(context, ref),
+                onTap: () => context.push('/notifications'),
               ),
             ],
           ),

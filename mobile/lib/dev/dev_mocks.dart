@@ -25,6 +25,9 @@ import '../features/buildings/domain/entities/building_entity.dart';
 import '../features/dues/domain/entities/due_entity.dart';
 import '../features/dues/domain/repositories/dues_repository.dart';
 import '../features/profile/data/repositories/profile_repository.dart';
+import '../features/tickets/domain/entities/ticket_entity.dart';
+import '../features/tickets/domain/entities/ticket_update_entity.dart';
+import '../features/tickets/domain/repositories/ticket_repository.dart';
 
 /// Tek bir tetikleyici noktada her mock'u sıfırlamak için.
 class MockState {
@@ -38,6 +41,9 @@ class MockState {
 const _delay = Duration(milliseconds: 200);
 
 class MockAuthRepository implements AuthRepository {
+  /// null = çıkış yapılmış; splash login ekranına gider.
+  static UserEntity? _sessionUser;
+
   static final UserEntity _devManager = UserEntity(
     id: 'dev_manager_1',
     email: 'dev@aidatpanel.com',
@@ -47,15 +53,37 @@ class MockAuthRepository implements AuthRepository {
     language: 'tr',
   );
 
+  static final UserEntity _devResident = UserEntity(
+    id: 'dev_resident_1',
+    email: 'resident@dev',
+    name: 'Dev Sakin',
+    phone: '+905559998877',
+    role: UserRole.resident,
+    language: 'tr',
+    apartmentId: 'a1_1',
+  );
+
   @override
   Future<UserEntity?> restoreSession() async {
     await Future.delayed(_delay);
-    return _devManager;
+    return _sessionUser;
+  }
+
+  @override
+  Future<UserEntity?> getStoredUser() async {
+    await Future.delayed(_delay);
+    return _sessionUser;
   }
 
   @override
   Future<UserEntity> login(String identifier, String password) async {
     await Future.delayed(_delay);
+    final id = identifier.trim().toLowerCase();
+    if (id == 'resident@dev' || id.contains('resident')) {
+      _sessionUser = _devResident;
+      return _devResident;
+    }
+    _sessionUser = _devManager;
     return _devManager;
   }
 
@@ -75,6 +103,12 @@ class MockAuthRepository implements AuthRepository {
   @override
   Future<void> logout() async {
     await Future.delayed(_delay);
+    _sessionUser = null;
+  }
+
+  /// İlk açılışta otomatik yönetici (isteğe bağlı). main_dev çağırır.
+  static void seedManagerSession() {
+    _sessionUser = _devManager;
   }
 
   /// Tur 5 §10/6 — Backend her zaman 200 döner; mock da aynı davranışı
@@ -96,9 +130,6 @@ class MockAuthRepository implements AuthRepository {
       );
     }
   }
-
-  @override
-  Future<UserEntity?> getStoredUser() async => _devManager;
 }
 
 /// Tur 5 §10/4-5 — `PUT /me/password` ve `DELETE /me` mock implementasyonu.
@@ -711,5 +742,141 @@ class MockDuesRepository implements DuesRepository {
         );
       }
     }
+  }
+}
+
+class MockTicketRepository implements TicketRepository {
+  final List<TicketEntity> _tickets = [];
+
+  MockTicketRepository() {
+    final now = DateTime.now();
+    _tickets.add(
+      TicketEntity(
+        id: 'ticket_seed_1',
+        apartmentId: 'a1_1',
+        userId: 'dev_resident_1',
+        title: 'Asansör gürültüsü',
+        description: 'Gece geç saatlerde asansör ses yapıyor.',
+        category: TicketCategory.complaint,
+        status: TicketStatus.open,
+        createdAt: now.subtract(const Duration(days: 2)),
+        updatedAt: now.subtract(const Duration(days: 2)),
+      ),
+    );
+  }
+
+  @override
+  Future<List<TicketEntity>> getMyTickets({
+    TicketStatus? status,
+    TicketCategory? category,
+  }) async {
+    await Future.delayed(_delay);
+    var list = List<TicketEntity>.from(_tickets);
+    if (status != null) list = list.where((t) => t.status == status).toList();
+    if (category != null) {
+      list = list.where((t) => t.category == category).toList();
+    }
+    list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+    return list;
+  }
+
+  @override
+  Future<List<TicketEntity>> getBuildingTickets(
+    String buildingId, {
+    TicketStatus? status,
+    TicketCategory? category,
+  }) async {
+    await Future.delayed(_delay);
+    return getMyTickets(status: status, category: category);
+  }
+
+  @override
+  Future<TicketEntity> getTicketById(String ticketId) async {
+    await Future.delayed(_delay);
+    return _tickets.firstWhere(
+      (t) => t.id == ticketId,
+      orElse: () => throw ApiException(message: 'Talep bulunamadı'),
+    );
+  }
+
+  @override
+  Future<TicketEntity> addManagerUpdate({
+    required String ticketId,
+    required String message,
+  }) async {
+    await Future.delayed(_delay);
+    final idx = _tickets.indexWhere((t) => t.id == ticketId);
+    if (idx < 0) throw ApiException(message: 'Talep bulunamadı');
+    final old = _tickets[idx];
+    final update = TicketUpdateEntity(
+      id: MockState.nextId('tup'),
+      ticketId: ticketId,
+      message: message,
+      fromRole: 'MANAGER',
+      createdAt: DateTime.now(),
+    );
+    _tickets[idx] = TicketEntity(
+      id: old.id,
+      apartmentId: old.apartmentId,
+      userId: old.userId,
+      title: old.title,
+      description: old.description,
+      category: old.category,
+      status: old.status,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now(),
+      apartmentNumber: old.apartmentNumber,
+      updates: [...old.updates, update],
+    );
+    return _tickets[idx];
+  }
+
+  @override
+  Future<TicketEntity> updateTicketStatus({
+    required String ticketId,
+    required TicketStatus status,
+  }) async {
+    await Future.delayed(_delay);
+    final idx = _tickets.indexWhere((t) => t.id == ticketId);
+    if (idx < 0) throw ApiException(message: 'Talep bulunamadı');
+    final old = _tickets[idx];
+    _tickets[idx] = TicketEntity(
+      id: old.id,
+      apartmentId: old.apartmentId,
+      userId: old.userId,
+      title: old.title,
+      description: old.description,
+      category: old.category,
+      status: status,
+      createdAt: old.createdAt,
+      updatedAt: DateTime.now(),
+      apartmentNumber: old.apartmentNumber,
+      updates: old.updates,
+    );
+    return _tickets[idx];
+  }
+
+  @override
+  Future<TicketEntity> createTicket({
+    required String apartmentId,
+    required String title,
+    required String description,
+    required TicketCategory category,
+  }) async {
+    await Future.delayed(_delay);
+    final now = DateTime.now();
+    final entity = TicketEntity(
+      id: MockState.nextId('ticket'),
+      apartmentId: apartmentId,
+      userId: MockAuthRepository._devResident.id,
+      title: title.trim(),
+      description: description.trim(),
+      category: category,
+      status: TicketStatus.open,
+      createdAt: now,
+      updatedAt: now,
+    );
+    _tickets.insert(0, entity);
+    return entity;
   }
 }

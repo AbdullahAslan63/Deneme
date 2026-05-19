@@ -1,5 +1,7 @@
+import 'api_config.dart';
+
 class ApiConstants {
-  static const String baseUrl = 'https://api.aidatpanel.com';
+  static String get baseUrl => ApiConfig.baseUrl;
   static const String apiVersion = '/api/v1';
 
   // Auth endpoints
@@ -25,8 +27,14 @@ class ApiConstants {
       '$apiVersion/buildings/$buildingId/due-amount';
   static String buildingExpenses(String buildingId) =>
       '$apiVersion/buildings/$buildingId/expenses';
+  static String buildingExpensesSummary(String buildingId) =>
+      '$apiVersion/buildings/$buildingId/expenses/summary';
   static String buildingTickets(String buildingId) =>
       '$apiVersion/buildings/$buildingId/tickets';
+  static String buildingAnnouncements(String buildingId) =>
+      '$apiVersion/buildings/$buildingId/announcements';
+  static String apartmentTickets(String apartmentId) =>
+      '$apiVersion/apartments/$apartmentId/tickets';
   static String buildingReports(String buildingId) =>
       '$apiVersion/buildings/$buildingId/reports';
 
@@ -54,10 +62,14 @@ class ApiConstants {
   static String ticket(String ticketId) => '$apiVersion/tickets/$ticketId';
   static String ticketUpdates(String ticketId) =>
       '$apiVersion/tickets/$ticketId/updates';
+  static String ticketStatus(String ticketId) =>
+      '$apiVersion/tickets/$ticketId/status';
   static const String myTickets = '$apiVersion/me/tickets';
 
   // Notifications endpoints
   static const String notifications = '$apiVersion/notifications';
+  static const String notificationsReadAll =
+      '$apiVersion/notifications/read-all';
   static String notificationRead(String notificationId) =>
       '$apiVersion/notifications/$notificationId/read';
   static const String fcmToken = '$apiVersion/me/fcm-token';
