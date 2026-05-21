@@ -22,7 +22,7 @@ aidatpanel/
 │   ├── assets/
 │   └── ...
 ├── mobile/               # Flutter (production: main.dart, dev: main_dev.dart)
-│   ├── lib/              # ~92 dart; features: auth, buildings, dues, …
+│   ├── lib/              # ~135 dart; Faz 1 + Faz 2A (notifications, tickets, expenses)
 │   ├── android/, ios/
 │   ├── tool/             # i18n_scan, çeviri yardımcıları
 │   └── pubspec.yaml
@@ -32,7 +32,7 @@ aidatpanel/
     ├── prisma.config.ts
     ├── prisma/
     │   ├── schema.prisma
-    │   └── migrations/     # init, user_deleted_at, dekont, ticket_created, …
+    │   └── migrations/     # 20260519001941_init, 20260519010242_ticket_created_notification_type
     ├── src/
     │   ├── config/db.js    # Prisma 7 + @prisma/adapter-pg
     │   ├── routes/
@@ -67,13 +67,13 @@ aidatpanel/
 
 ### Stack (henüz kodda yok — plan)
 
-- **Push (mobil):** Flutter `Firebase.initializeApp` + token upload akışı ⬜ (`PLAN.md` B0–B1)
+- **Push (mobil):** Flutter `initFirebase` + `PUT /me/fcm-token` ✅ (`PLAN.md` B0–B1); cihaz doğrulaması E2E checklist
 - **SMS/WhatsApp:** Twilio
 - **Abonelik:** RevenueCat webhook
 - **Deployment:** PM2 + `ecosystem.config.js` (repoda yok)
 - **Subdomain:** api.aidatpanel.com
 
-### Backend durum özeti (2026-05)
+### Backend durum özeti (2026-05-20)
 
 **Uygulanan route dosyaları (`/api/v1`):** `authRoutes`, `buildingRoutes` (dues, expenses, tickets, announcements), `apartmentRoutes`, `inviteCodeRoutes`, `meRoutes` (`GET /tickets`), `notificationRoutes`, `ticketRoutes`, `apartmentTicketRoutes`, `expenseRoutes`.
 
@@ -436,7 +436,7 @@ POST                 /api/v1/.../dekonts        # Dekont yükleme + OCR (Faz 2)
 
 ## 📱 Flutter Uygulaması
 
-**Sürüm:** `0.1.2+1778674159` · **SDK:** Dart `^3.11.5` · **~92** aktif `.dart` dosyası (`lib/`)
+**Sürüm:** `pubspec.yaml` · **SDK:** Dart `^3.11.5` · **~135** `.dart` dosyası (`lib/`, 2026-05-20)
 
 ### Stack (kodda mevcut)
 
@@ -444,38 +444,36 @@ POST                 /api/v1/.../dekonts        # Dekont yükleme + OCR (Faz 2)
 | -------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
 | Mimari   | Clean Architecture                             | `data` / `domain` / `presentation` (kısmi; tüm feature’larda domain yok)                        |
 | State    | **flutter_riverpod**                           | `StateNotifier` + `Provider`; `riverpod_annotation` pubspec’te var, **kodda kullanılmıyor**     |
-| Router   | **go_router**                                  | Auth redirect; 8 rota                                                                           |
+| Router   | **go_router**                                  | Auth redirect; Faz 2 rotaları (`/notifications`, `/manager/tickets`, …)                        |
 | Ağ       | **dio** + `DioClient`                          | JWT interceptor, 401’de refresh, ayrı `_refreshDio`                                             |
 | Depolama | **flutter_secure_storage**                     | access/refresh token, dil, FCM anahtarı                                                         |
 | i18n     | **Slang 3**                                    | `strings_tr.i18n.json` / `strings_en.i18n.json` → `strings.g.dart`                              |
 | UI       | Material 3                                     | `AppColors`, `AppTypography` (Nunito **adı** tanımlı; font asset pubspec’te yok → sistem fontu) |
 | Yardımcı | `share_plus`, `package_info_plus`, `equatable` | Davet kodu paylaşımı, sürüm etiketi                                                             |
 
-### Stack (henüz entegre değil)
+### Planlanan / kısmi (Faz 2B+)
 
-| Plan                                    | Durum                                                                                                                                   |
-| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `purchases_flutter` (RevenueCat)        | pubspec’te **yok** (yalnızca Android proguard yorumu)                                                                                   |
-| `cached_network_image`, `shimmer`       | pubspec’te **yok**                                                                                                                      |
-| `freezed` / `json_serializable` üretimi | pubspec dev’de var; modeller **manuel** `fromJson`                                                                                      |
-| Firebase                                | `firebase_core` / `firebase_messaging` bağımlılık var; **`main.dart` içinde `Firebase.initializeApp` yok**, `firebase_options.dart` yok |
-| FCM sunucuya gönderim                   | `SecureStorage` + `ApiConstants.fcmToken` hazır; kayıt akışı bağlanmamış                                                                |
+| Plan                                    | Durum |
+| --------------------------------------- | ----- |
+| `purchases_flutter` (RevenueCat)        | pubspec’te yok — Faz 3 |
+| `cached_network_image`, `shimmer`       | pubspec’te yok |
+| `freezed` / `json_serializable` üretimi | dev’de var; modeller manuel `fromJson` |
+| iOS `GoogleService-Info.plist`          | 🔶 `flutterfire configure` |
 
 ### Giriş noktaları
 
 | Dosya               | Amaç                                                                                 |
 | ------------------- | ------------------------------------------------------------------------------------ |
-| `lib/main.dart`     | Production — gerçek API (`https://api.aidatpanel.com`)                               |
+| `lib/main.dart`     | Production — `ApiConfig` (varsayılan `https://api.aidatpanel.com`; `--dart-define=API_BASE_URL` ile yerel) |
 | `lib/main_dev.dart` | Mock repository override; sağ üst **DEV** rozeti; `flutter run -t lib/main_dev.dart` |
 
-### Mobil durum özeti (2026-05)
+### Mobil durum özeti (2026-05-20)
 
-**GoRouter rotaları:** `/` splash → oturum kurtarma → `/login` \| `/register` \| `/join` \| `/forgot-password` \| `/reset-password` → `/manager-dashboard` \| `/resident-dashboard`
+**GoRouter (özet):** Auth akışları + `/manager-dashboard` \| `/resident-dashboard` + Faz 2: `/notifications`, `/manager/tickets`, `/manager/expenses`, `/manager/announcement`, `/tickets/new`, `/tickets/:ticketId`, `/expenses/new`
 
-**Yönetici sekmeleri (4 — plan’daki 5 değil):** Ana Sayfa · Binalar · Aidat · Ayarlar  
-_(Giderler / Bildirimler ayrı tab değil; ayarlarda “yakında”)_
+**Yönetici sekmeleri (4):** Ana Sayfa (Faz 2 kısayolları: talep, gider, duyuru) · Binalar · Aidat · Ayarlar (bildirimler → `/notifications`)
 
-**Sakin sekmeleri (4):** Ana Sayfa · Aidatlarım · Talepler _(placeholder metin)_ · Ayarlar
+**Sakin sekmeleri (4):** Ana Sayfa · Aidatlarım · Talepler (`ResidentTicketsTab`) · Ayarlar
 
 **Planda olmayan / genişletilmiş:**
 
@@ -484,7 +482,7 @@ _(Giderler / Bildirimler ayrı tab değil; ayarlarda “yakında”)_
 - `FriendlyErrorScreen` + `ToastOverlay` — global hata ve snack benzeri bildirim
 - `building_residents_screen` — çoklu daire seçimi, toplu davet, daire CRUD, sakin çıkarma
 - `cities_data.dart` — bina formu şehir listesi
-- `ApiConstants` — Faz 2 endpoint sabitleri önceden tanımlı (backend henüz yok)
+- `ApiConstants` + `ApiConfig` (`API_BASE_URL` dart-define) — Faz 2 endpoint’leri backend ile uyumlu
 - Aidat özeti — yönetici ana sayfada tüm binaların aidatlarından tahsilat oranı hesabı
 - `tool/` — `i18n_scan`, `check_translations`, `add_translation`
 
@@ -497,8 +495,9 @@ dependencies:
   dio: ^5.4.0
   flutter_secure_storage: ^9.0.0
   slang / slang_flutter: ^3.30.0
-  firebase_core: ^3.0.0          # başlatılmıyor
+  firebase_core: ^3.0.0          # initFirebase() in main.dart
   firebase_messaging: ^15.0.0
+  intl: …                      # tarih formatları (Faz 2 ekranları)
   equatable, json_annotation, freezed_annotation  # üretim kullanılmıyor
   share_plus, package_info_plus
 
@@ -510,41 +509,25 @@ dev_dependencies:
 
 ```
 mobile/lib/
-├── main.dart
-├── main_dev.dart
-├── dev/dev_mocks.dart
+├── main.dart, main_dev.dart, firebase_options.dart
+├── dev/dev_mocks.dart, dev/mock_faz2_datasources.dart
 ├── core/
-│   ├── constants/          api_constants.dart, app_constants.dart
-│   ├── theme/              app_colors, app_typography, app_theme, app_sizes
+│   ├── constants/          api_constants.dart, api_config.dart
+│   ├── notifications/      firebase_bootstrap, fcm_*, notification_payload
 │   ├── router/app_router.dart
-│   ├── network/            dio_client.dart, api_exception.dart
-│   ├── storage/secure_storage.dart
-│   ├── providers/locale_provider.dart
-│   ├── platform/system_navigator_bridge.dart
-│   └── utils/input_validators.dart
-├── l10n/
-│   ├── i18n.yaml
-│   ├── strings_tr.i18n.json, strings_en.i18n.json
-│   └── strings.g.dart      # üretilmiş
+│   └── …
 ├── features/
-│   ├── auth/               ✅ ekranlar + AuthRepository + splash bootstrap
-│   ├── dashboard/          ✅ manager + resident dashboard
-│   ├── buildings/          ✅ CRUD, davet kodu, residents ekranı
-│   ├── apartments/         ✅ data/UI (buildings akışına gömülü)
-│   ├── dues/               ✅ manager_dues_tab, resident_dues_tab
-│   ├── profile/            ✅ şifre, hesap silme (API)
-│   ├── expenses/           ⬜ yalnızca .gitkeep iskelet
-│   ├── tickets/            ⬜ iskelet
-│   ├── notifications/      ⬜ iskelet
-│   ├── reports/            ⬜ iskelet
-│   └── subscription/       ⬜ iskelet
-└── shared/
-    ├── widgets/            settings_tab, empty_state, friendly_error, toast, …
-    ├── providers/navigation_provider.dart
-    └── utils/auth_validators.dart
+│   ├── auth, dashboard, buildings, apartments, dues, profile  ✅
+│   ├── notifications/     ✅ liste, duyuru sheet, remote datasource
+│   ├── tickets/           ✅ sakin/yönetici/detay, repository
+│   ├── expenses/          ✅ CRUD, özet, ExpenseFormSheet
+│   ├── reports/           ⬜ iskelet (Faz 2B+)
+│   └── subscription/      ⬜ iskelet (Faz 3)
+└── shared/widgets/        settings_tab (bildirimler + badge), toast, …
 
-mobile/test/                 auth_validators_test.dart, widget_test.dart (şablon)
-mobile/tool/                 i18n_scan, check_translations, add_translation
+mobile/test/               auth_validators_test, notification_payload_test
+mobile/E2E_CHECKLIST.md    manuel B6
+mobile/tool/               i18n_scan, check_translations, add_translation
 ```
 
 ### Feature → API eşlemesi
@@ -559,9 +542,9 @@ mobile/tool/                 i18n_scan, check_translations, add_translation
 | Aidat (sakin)        | ✅  | ✅          | `GET /me/dues`                         |
 | Profil / dil / şifre | ✅  | ✅          | `SettingsTab`                          |
 | Hesap silme          | ✅  | ✅          | KVKK dialog                            |
-| Giderler             | ⬜  | ⬜          |                                        |
-| Talepler             | 🔶  | ⬜          | sakin “Talepler” sekmesi boş           |
-| Bildirimler          | 🔶  | ⬜          | ayarlarda coming soon                  |
+| Giderler             | ✅  | ✅          | yönetici `/manager/expenses`           |
+| Talepler             | ✅  | ✅          | sakin sekme + yönetici liste/detay     |
+| Bildirimler          | ✅  | ✅          | `/notifications`, FCM deep link        |
 | Abonelik / Paywall   | ⬜  | ⬜          |                                        |
 | Dekont yükleme       | ⬜  | ⬜          |                                        |
 
@@ -799,10 +782,10 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 - [x] Ayarlar: profil kartı, şifre değiştir, dil (TR/EN, Slang + secure storage), hesap silme
 - [x] i18n Slang (TR/EN); `main_dev` mock modu
 - [x] Tasarım token’ları: renk, tipografi, 56dp buton, `NavigationBar`
-- [-] Firebase / FCM: bağımlılık var, **init ve token upload akışı yok**
+- [x] Firebase / FCM: `initFirebase`, token upload, `FcmScope` *(2026-05-20)*
 - [ ] RevenueCat / paywall ⬜
-- [ ] Giderler, bildirimler, raporlar UI ⬜
-- [ ] Sakin talepler sekmesi (API + UI) ⬜ — şu an placeholder
+- [x] Giderler, bildirimler UI ✅ *(raporlar UI hâlâ Faz 2B+)*
+- [x] Sakin talepler sekmesi (`ResidentTicketsTab`) ✅
 
 **Faz 1 dışı kalan plan maddeleri (bilinçli veya ertelenmiş):**
 
@@ -823,7 +806,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 - [x] Gider API (`Expense`) — **Faz 2A backend ✅**
 - [x] Arıza/talep API (`Ticket`, `TicketUpdate`) — **Faz 2A backend ✅**
-- [x] Bildirim listesi + okundu + yönetici duyuru + FCM — **Faz 2A backend ✅** (mobil UI ⬜)
+- [x] Bildirim listesi + okundu + yönetici duyuru + FCM — **Faz 2A backend ✅** · **mobil UI ✅** (E2E cihaz 🔶)
 - [ ] WhatsApp aidat hatırlatma
 - [ ] PDF rapor (aylık özet)
 - [x] i18n (TR/EN) — mobil: Slang; ayarlar + ekran metinleri
@@ -834,7 +817,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 > **Ayrıntılı plan:** [`PLAN.md`](PLAN.md) · Backend push: [`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md) ✅ · Flutter: [`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
 
-**Hedef:** Expense / Ticket / Notification REST API; **Firebase Admin push zorunlu**; Flutter’da FCM + bildirim/talep/gider ekranları implementasyona hazır.
+**Hedef:** Expense / Ticket / Notification REST API; **Firebase Admin push zorunlu**; Flutter’da FCM + bildirim/talep/gider ekranları — **kod tamam** (2026-05-20), E2E + polish kaldı.
 
 **Kapsam dışı (bu sprint):** Dekont/OCR, `receiptUrl` dosya upload, RevenueCat kilidi, WhatsApp/SMS, PDF rapor.
 
@@ -842,11 +825,11 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 | Modül | Şema | Backend API | Mobil UI |
 | ----- | ---- | ----------- | -------- |
-| Expense | ✅ | ✅ | ⬜ iskelet |
-| Ticket + TicketUpdate | ✅ | ✅ | ⬜ placeholder sekme |
-| Notification + duyuru | ✅ | ✅ | ⬜ ayarlarda “yakında” |
-| FCM push (Admin SDK) | ✅ | ✅ production zorunlu | ⬜ init yok |
-| FCM token | ✅ | ✅ `PUT /me/fcm-token` | ⬜ upload akışı |
+| Expense | ✅ | ✅ | ✅ `/manager/expenses` |
+| Ticket + TicketUpdate | ✅ | ✅ | ✅ sakin sekme + yönetici |
+| Notification + duyuru | ✅ | ✅ | ✅ `/notifications` + duyuru sheet |
+| FCM push (Admin SDK) | ✅ | ✅ production zorunlu | ✅ client; cihaz E2E 🔶 |
+| FCM token | ✅ | ✅ `PUT /me/fcm-token` | ✅ `syncFcmAfterAuth` |
 
 **Tekrar kullanılan kalıp:** `dueService` / `buildingRoutes` — bina sahipliği `managerId`, sakin `apartmentId` + `RESIDENT`, yanıt `{ success, message?, data }`, yetki sızıntısı **404** (enumeration önleme).
 
@@ -1190,8 +1173,8 @@ ElevatedButton(
 
 | Rol      | Sekmeler (uygulama)                         | Plan dokümanı (hedef)             |
 | -------- | ------------------------------------------- | --------------------------------- |
-| Yönetici | Ana Sayfa · Binalar · Aidat · Ayarlar       | + Giderler · Bildirimler ayrı tab |
-| Sakin    | Ana Sayfa · Aidatlarım · Talepler · Ayarlar | Talepler API’siz placeholder      |
+| Yönetici | Ana Sayfa · Binalar · Aidat · Ayarlar       | Faz 2: ana sayfa kısayolları (talep/gider/duyuru) |
+| Sakin    | Ana Sayfa · Aidatlarım · Talepler · Ayarlar | Talepler ✅ API bağlı (2026-05-20) |
 
 Alt ekranlar `Navigator.push` ile: `AddBuildingScreen`, `BuildingResidentsScreen`, `InviteCodeScreen` (GoRouter dışı stack).
 

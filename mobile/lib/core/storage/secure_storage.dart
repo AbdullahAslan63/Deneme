@@ -1,5 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
 import '../constants/app_constants.dart';
+import '../utils/jwt_expiry.dart';
 
 class SecureStorage {
   static const _storage = FlutterSecureStorage(
@@ -60,9 +62,15 @@ class SecureStorage {
   }
 
   Future<bool> isTokenExpired() async {
-    final expiry = await getTokenExpiry();
-    if (expiry == null) return true;
-    return DateTime.now().isAfter(expiry);
+    var expiry = await getTokenExpiry();
+    if (expiry == null) {
+      final token = await getToken();
+      if (token == null) return true;
+      expiry = JwtExpiry.fromAccessToken(token);
+      if (expiry == null) return false;
+    }
+    const skew = Duration(seconds: 30);
+    return DateTime.now().isAfter(expiry.subtract(skew));
   }
 
   Future<void> clearAuth() async {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "391510652928",
+    "project_id": "aidat-panel-deneme",
+    "storage_bucket": "aidat-panel-deneme.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:391510652928:android:d0d193c66f1cc9ce7600e5",
+        "android_client_info": {
+          "package_name": "com.aidatpanel.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyACC7tWwbHfGFZxYGGAlZUgpa48IhLwIYI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

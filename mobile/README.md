@@ -18,6 +18,10 @@ Sunucu olmadan arayüz denemek için (mock veri, ekranda **DEV** rozeti):
 flutter run -t lib/main_dev.dart
 ```
 
+Faz 2 (talep, gider, bildirim, duyuru) mock verileri `lib/dev/mock_faz2_datasources.dart` içinde seed edilir.
+
+Yerel API ile uçtan uca test: [`E2E_CHECKLIST.md`](E2E_CHECKLIST.md).
+
 ## Çeviri ve görevler
 
 Çeviri anahtarları `lib/l10n/` altındaki JSON dosyalarında; üretilen kod `strings.g.dart`. Üst klasördeki VS Code / Cursor görevleri: Slang watch/generate, i18n tarama (`dart run tool/i18n_scan.dart`, `dart run tool/check_translations.dart`). Toplu çeviri için DeepL API anahtarı `tool/.deepl_key` dosyasına konur (dosya `.gitignore`’dadır, repoya girmez). Tek anahtar eklemek: `dart run tool/add_translation.dart <anahtar> "Türkçe" ["English"]`.
@@ -30,17 +34,9 @@ flutter run -t lib/main_dev.dart
 
 `key.properties` yoksa release derlemesi geçici olarak debug anahtarıyla imzalanır; mağazaya **yalnızca** `key.properties` + keystore ile üretilen AAB gönder.
 
-## Proje belgeleri (repo kökü)
+## Proje belgeleri
 
-| Dosya | Açıklama |
-|-------|----------|
-| [`../DOKUMANTASYON.md`](../DOKUMANTASYON.md) | Tüm `.md` dosyaları indeksi |
-| [`../FLUTTER_ENTEGRASYON_PLANI.md`](../FLUTTER_ENTEGRASYON_PLANI.md) | **Mobil Faz 2A planı** — önce B-ANALYZE, sonra B0–B6 |
-| [`../FLUTTER-BACKEND.md`](../FLUTTER-BACKEND.md) | API / JSON / FCM sözleşmesi |
-| [`../AIDATPANEL.md`](../AIDATPANEL.md) | Master referans |
-| [`../PLAN.md`](../PLAN.md) | Genel geliştirme planı |
-
-Backend hazır; FCM + bildirim/talep/gider UI henüz bağlanacak. Tasarım eksiklerini sabit listeye göre değil, `FLUTTER_ENTEGRASYON_PLANI.md` → **B-ANALYZE** ile tespit edin.
+API sözleşmesi ve fazlar: repoda [`../AIDATPANEL.md`](../AIDATPANEL.md), [`../FLUTTER-BACKEND.md`](../FLUTTER-BACKEND.md), [`../PLAN.md`](../PLAN.md), [`../DOKUMANTASYON.md`](../DOKUMANTASYON.md). Manuel test: [`E2E_CHECKLIST.md`](E2E_CHECKLIST.md).
 
 ---
 

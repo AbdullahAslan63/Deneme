@@ -10,6 +10,9 @@
 ///   - apartmentRepositoryProvider  → MockApartmentRepository (her binada birkaç daire)
 ///   - duesRepositoryProvider       → MockDuesRepository (boş, sadece UI gezmesi için)
 ///   - profileRepositoryProvider    → MockProfileRepository (şifre Eski123. , reset kodu ABCDEF)
+///   - ticketRepositoryProvider     → MockTicketRepository (örnek talep)
+///   - expenseDataSourceProvider    → MockExpenseDataSource (b1/b2 gider + özet)
+///   - notificationDataSourceProvider → MockNotificationDataSource (Faz 2 bildirim örnekleri)
 ///
 /// Splash → restoreSession sahte manager kullanıcı döner → router otomatik
 /// olarak `/manager-dashboard` rotasına yönlendirir. Login/register ekranlarına
@@ -27,11 +30,15 @@ import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/storage/secure_storage.dart';
 import 'dev/dev_mocks.dart';
+import 'dev/mock_faz2_datasources.dart';
+import 'features/expenses/presentation/providers/expenses_provider.dart';
+import 'features/notifications/presentation/providers/notifications_provider.dart';
 import 'features/apartments/data/apartments_store.dart';
 import 'features/auth/presentation/providers/auth_provider.dart';
 import 'features/buildings/data/buildings_store.dart';
 import 'features/dues/presentation/providers/dues_provider.dart';
 import 'features/profile/presentation/providers/profile_provider.dart';
+import 'features/tickets/presentation/providers/tickets_provider.dart';
 import 'shared/widgets/friendly_error_screen.dart';
 import 'shared/widgets/toast_overlay.dart';
 import 'l10n/strings.g.dart';
@@ -48,8 +55,12 @@ void main() async {
   final mockApartments = MockApartmentRepository();
   final mockBuildings = MockBuildingRepository(mockApartments);
   final mockAuth = MockAuthRepository();
+  MockAuthRepository.seedManagerSession();
   final mockDues = MockDuesRepository();
   final mockProfile = MockProfileRepository();
+  final mockTickets = MockTicketRepository();
+  final mockExpenses = MockExpenseDataSource()..seedPreview();
+  final mockNotifications = MockNotificationDataSource()..seedPreview();
 
   runApp(
     ProviderScope(
@@ -59,6 +70,9 @@ void main() async {
         apartmentRepositoryProvider.overrideWithValue(mockApartments),
         duesRepositoryProvider.overrideWithValue(mockDues),
         profileRepositoryProvider.overrideWithValue(mockProfile),
+        ticketRepositoryProvider.overrideWithValue(mockTickets),
+        expenseDataSourceProvider.overrideWithValue(mockExpenses),
+        notificationDataSourceProvider.overrideWithValue(mockNotifications),
       ],
       child: const _DevBanner(child: _DevApp()),
     ),

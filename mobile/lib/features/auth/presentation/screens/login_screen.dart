@@ -11,6 +11,7 @@ import '../../../../core/utils/input_validators.dart';
 import '../../../../l10n/strings.g.dart';
 import '../../../../shared/widgets/alt_action_button.dart';
 import '../../../../shared/widgets/toast_overlay.dart';
+import '../../../../core/notifications/fcm_sync.dart';
 import '../providers/auth_provider.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -118,6 +119,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       if (next.isAuthenticated &&
           next.user != null &&
           !(previous?.isAuthenticated ?? false)) {
+        syncFcmAfterAuth(ref);
         ref.read(toastProvider.notifier).show(
               context.t.features.auth.loginSuccess,
               type: ToastType.success,

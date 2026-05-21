@@ -78,16 +78,6 @@ class DioClient {
 
     final token = await _secureStorage.getToken();
     if (token != null) {
-      final isExpired = await _secureStorage.isTokenExpired();
-      if (isExpired) {
-        return handler.reject(
-          DioException(
-            requestOptions: options,
-            error: 'Oturum süreniz doldu. Lütfen tekrar giriş yapın.',
-            type: DioExceptionType.cancel,
-          ),
-        );
-      }
       options.headers['Authorization'] = 'Bearer $token';
     }
 

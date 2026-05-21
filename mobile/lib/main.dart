@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'core/constants/app_constants.dart';
+import 'core/notifications/firebase_bootstrap.dart';
+import 'core/notifications/fcm_scope.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'core/storage/secure_storage.dart';
@@ -14,6 +16,7 @@ import 'l10n/strings.g.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   _installGlobalErrorHandlers();
+  await initFirebase();
   await initAppInfo();
   await initLocale();
   runApp(const ProviderScope(child: MyApp()));
@@ -83,7 +86,9 @@ class MyApp extends ConsumerWidget {
         ],
         supportedLocales: AppLocaleUtils.supportedLocales,
         builder: (context, child) {
-          return ToastOverlay(child: child ?? const SizedBox.shrink());
+          return FcmScope(
+            child: ToastOverlay(child: child ?? const SizedBox.shrink()),
+          );
         },
       ),
     );

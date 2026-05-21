@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_sizes.dart';
 import '../../core/theme/app_typography.dart';
 import '../../features/auth/presentation/providers/auth_provider.dart';
+import '../../features/notifications/presentation/providers/notifications_provider.dart';
 import '../../features/auth/domain/entities/user_entity.dart';
 import '../../features/profile/presentation/widgets/change_password_bottom_sheet.dart';
 import '../../features/profile/presentation/widgets/delete_account_dialog.dart';
@@ -22,6 +23,7 @@ class SettingsTab extends ConsumerWidget {
     final authState = ref.watch(authStateProvider);
     final user = authState.user;
     final currentLocale = ref.watch(localeProvider);
+    final unreadNotifications = ref.watch(notificationsNotifierProvider).unreadCount;
 
     return SingleChildScrollView(
       padding: AppSizes.screenBodyScrollPadding,
@@ -51,7 +53,10 @@ class SettingsTab extends ConsumerWidget {
               _SettingsTile(
                 icon: Icons.notifications_outlined,
                 title: context.t.common.notifications,
-                onTap: () => _showComingSoon(context, ref),
+                trailing: unreadNotifications > 0
+                    ? unreadNotifications.toString()
+                    : null,
+                onTap: () => context.push('/notifications'),
               ),
             ],
           ),

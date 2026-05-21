@@ -13,6 +13,7 @@ import '../../../../shared/widgets/alt_action_button.dart';
 import '../../../../shared/widgets/password_field.dart';
 import '../../../../shared/widgets/password_criterion.dart';
 import '../../../../shared/widgets/toast_overlay.dart';
+import '../../../../core/notifications/fcm_sync.dart';
 import '../providers/auth_provider.dart';
 
 class JoinScreen extends ConsumerStatefulWidget {
@@ -188,6 +189,11 @@ class _JoinScreenState extends ConsumerState<JoinScreen> {
     final authState = ref.watch(authStateProvider);
 
     ref.listen(authStateProvider, (previous, next) {
+      if (next.isAuthenticated &&
+          next.user != null &&
+          !(previous?.isAuthenticated ?? false)) {
+        syncFcmAfterAuth(ref);
+      }
       if (next.error != null && next.error != previous?.error) {
         ref
             .read(toastProvider.notifier)

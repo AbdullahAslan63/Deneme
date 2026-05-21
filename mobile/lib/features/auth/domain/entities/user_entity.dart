@@ -8,7 +8,6 @@ class UserEntity extends Equatable {
   final String name;
   final String? phone;
   final UserRole role;
-  final String? fcmToken;
   final String language;
 
   /// Sakin için bağlı olduğu daire id'si. Yönetici hesaplarında null'dır.
@@ -21,12 +20,11 @@ class UserEntity extends Equatable {
     required this.name,
     this.phone,
     required this.role,
-    this.fcmToken,
     this.language = 'tr',
     this.apartmentId,
   });
 
   @override
   List<Object?> get props =>
-      [id, email, name, phone, role, fcmToken, language, apartmentId];
+      [id, email, name, phone, role, language, apartmentId];
 }

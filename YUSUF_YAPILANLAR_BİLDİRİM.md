@@ -1,7 +1,7 @@
 # Yusuf — Bildirimler (Notifications) Checkpoint Rehberi
 
 > **Proje:** AidatPanel  
-> **Son güncelleme:** 2026-05-19 (Postman manuel test tamamlandı)  
+> **Son güncelleme:** 2026-05-20 (mobil Faz 2A UI eklendi — bu dosyanın Flutter satırları güncellendi)  
 > **Referans:** `AIDATPANEL.md` · `FLUTTER-BACKEND.md` · `backend/src/`  
 > **API tabanı:** `http://127.0.0.1:4200/api/v1` (yerel)
 
@@ -14,12 +14,12 @@
 | **Backend REST API (Faz 2A)** | ✅ **Bitti** | AIDATPANEL.md § Notifications hedefleri karşılandı |
 | **Postman manuel test (Yusuf)** | ✅ **Bitti** | 7/7 ana adım doğrulandı (aşağıda kayıt) |
 | **Otomatik test (`test.py`)** | ✅ | 120 OK (Faz 2A+ push senaryoları dahil) |
-| **Gerçek duyuru → sakin (Postman)** | ⬜ Opsiyonel | Klasör 3; kod hazır, manuel test bekliyor |
-| **Firebase push (gerçek cihaz)** | ⬜ Gelecek | Dev'de `pushSkipped` — normal |
-| **Flutter bildirim ekranı** | ⬜ Gelecek | AIDATPANEL.md: mobil UI henüz yok |
-| **DUE_REMINDER / DUE_PAID / TICKET_CREATED push** | ✅ Backend | Mobil deep link ⬜ (`FLUTTER_ENTEGRASYON_PLANI.md` B2–B3) |
+| **Gerçek duyuru → sakin (Postman)** | 🔶 Opsiyonel | Klasör 3; backend + mobil kod hazır |
+| **Firebase push (gerçek cihaz)** | 🔶 E2E | Dev'de `pushSkipped` normal; fiziksel cihaz gerekir |
+| **Flutter bildirim ekranı** | ✅ Kod | `/notifications`, FCM scope — E2E: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
+| **DUE_REMINDER / DUE_PAID / TICKET_CREATED push** | ✅ Backend | Mobil deep link ✅ kod; cihaz doğrulaması E2E |
 
-**Sonuç:** Backend bildirim modülü **AIDATPANEL.md Faz 2A backend kapsamında tamam**. Projenin tamamı (mobil + production FCM) henüz bitmedi — bu beklenen durum.
+**Sonuç:** Backend bildirim modülü **tamam**. Mobil Faz 2A **kod tamam** (2026-05-20); kalan: gerçek cihazda FCM + E2E işaretleme.
 
 ---
 
@@ -247,21 +247,20 @@ AIDATPANEL.md satır 389–397, 825, 970–975 ile uyumlu:
 - [x] Otomatik `TICKET_UPDATE` (talep servisi)
 - [x] Modüler `src/` yapısı (constants, validators, utils, services)
 
-### ⬜ AIDATPANEL'de var ama bu checkpoint dışında / gelecek
+### Mobil ve doğrulama (2026-05-20 güncelleme)
 
-| Madde | AIDATPANEL referansı | Durum |
-|-------|---------------------|-------|
-| Flutter bildirim ekranı | § Mobil, Faz 2A Flutter B0–B4 | ⬜ Mobil branch |
-| Gerçek cihazda FCM push | § FCM, satır 1018 | ⬜ Firebase env + telefon |
-| `DUE_REMINDER` / `DUE_PAID` / `TICKET_CREATED` | § Push A7–A12 | ✅ API (`PLAN_BACKEND_PUSH.md`) |
-| WhatsApp / SMS hatırlatma | § Faz 2 | ⬜ Twilio entegrasyonu |
-| Yönetici toplu push UI | § MANAGER yetkileri | ⬜ Flutter |
-| Production deploy (VPS) | § Deployment | ⬜ Ayrı iş |
+| Madde | Durum |
+|-------|--------|
+| Flutter bildirim ekranı | ✅ `/notifications` + FCM (`mobile/lib/`) |
+| Duyuru UI | ✅ `AnnouncementFormSheet` |
+| `DUE_REMINDER` / `DUE_PAID` / `TICKET_CREATED` | ✅ Backend + mobil deep link kodu |
+| Gerçek cihazda FCM push | 🔶 E2E: [`mobile/E2E_CHECKLIST.md`](../mobile/E2E_CHECKLIST.md) |
+| WhatsApp / SMS hatırlatma | ⬜ Faz 3 |
+| Production deploy (VPS) | ⬜ DevOps |
 
 ### Karar
 
-**Backend bildirim API'si AIDATPANEL Faz 2A backend tanımına göre tamamlandı.**  
-Projenin genel "bildirim sistemi" (mobil UI + gerçek push + aidat bildirimleri) henüz bitmedi — AIDATPANEL bunu da açıkça belirtiyor.
+**Backend bildirim API'si tamam.** **Mobil Faz 2A kod tamam** (2026-05-20). Kalan: gerçek cihazda push doğrulaması ve isteğe bağlı Postman duyuru→sakin senaryosu.
 
 ---
 
@@ -293,7 +292,7 @@ Projenin genel "bildirim sistemi" (mobil UI + gerçek push + aidat bildirimleri)
 
 ### Adım adım
 
-**1. Mobil uygulama token alır (Flutter — henüz yok)**
+**1. Mobil uygulama token alır (Flutter — ✅ `fcm_service` + `PUT /me/fcm-token`)**
 ```
 Telefon → Firebase SDK → fcmToken üretir
        → PUT /api/v1/me/fcm-token → backend DB'ye kaydeder
@@ -365,7 +364,7 @@ Tüm değerler **string** olmalı:
 |---------|-----------------|-----|
 | Backend'e service account ekle | ✅ Evet | Firebase Console → JSON → `.env` |
 | Postman sahte token ile gerçek push | ❌ Hayır | `ffff...` geçerli FCM token değil → `pushFailed` |
-| Gerçek telefona push | ⬜ Flutter gerekir | `firebase_messaging` + gerçek cihaz token'ı |
+| Gerçek telefona push | 🔶 E2E checklist | `firebase_messaging` + Play AVD veya fiziksel cihaz |
 | In-app bildirim (DB) Firebase'siz | ✅ Evet | Zaten çalışıyor |
 
 **Backend Firebase açma (kısmi test):**
@@ -428,11 +427,11 @@ AIDATPANEL.md satır 825, 846:
 ### Final durum özeti
 
 ```
-Backend bildirim API (Faz 2A)     →  ✅ Bitti — yeni kod gerekmez
+Backend bildirim API (Faz 2A)     →  ✅ Bitti
 Yusuf Postman ana akış (7 adım)   →  ✅ Bitti
-Firebase gerçek push              →  ⬜ Flutter + Firebase Console
-Flutter bildirim ekranı           →  ⬜ mobile/flutter branch
-Aidat hatırlatma push             →  ⬜ Gelecek faz
+Flutter bildirim + FCM kodu       →  ✅ mobile/lib (2026-05-20)
+Firebase gerçek push (cihaz)        →  🔶 E2E checklist + Firebase Console
+Aidat hatırlatma push (backend)   →  ✅ Kod; mobil deep link ✅
 ```
 
 ---
@@ -472,7 +471,7 @@ npm run demo:notifications
 | 1 | Postman klasör 3 — duyuru → sakin bildirimi | Yusuf | ❌ Kod hazır, sadece test |
 | 2 | `PATCH read-all` Postman testi | Yusuf | ❌ Kod hazır |
 | 3 | `python test.py` smoke test | Yusuf | ❌ Kod hazır |
-| 4 | Flutter `features/notifications` ekranı | Mobil ekip | Mobil iş |
+| 4 | E2E checklist (FCM + 2 hesap) | Mobil + Yusuf | [`mobile/E2E_CHECKLIST.md`](../mobile/E2E_CHECKLIST.md) |
 | 5 | Firebase Console + gerçek FCM test | Mobil + `.env` | Konfigürasyon |
 | 6 | Production VPS deploy | DevOps | Deploy |
 
@@ -486,13 +485,13 @@ npm run demo:notifications
 |---------|-------------|------------|---------------|
 | GET /notifications | ✅ | ✅ | ✅ |
 | PATCH .../read | ✅ | ✅ | ✅ |
-| PATCH read-all | ✅ | ✅ | ⬜ |
+| PATCH read-all | ✅ | ✅ | ✅ kod |
 | PUT /me/fcm-token | ✅ | ✅ | ✅ |
 | dev/seed | ✅ | — | ✅ |
-| FCM push (kod) | ✅ | ✅ | ⏸ pushSkipped |
-| Duyuru → ANNOUNCEMENT | ✅ | ✅ | ⬜ |
-| Talep → TICKET_UPDATE | ✅ | ✅ | ⬜ test.py |
-| Flutter UI | — | ⬜ | — |
+| FCM push (kod) | ✅ | ✅ | ⏸ yerelde pushSkipped normal |
+| Duyuru → ANNOUNCEMENT | ✅ | ✅ | 🔶 Postman opsiyonel |
+| Talep → TICKET_UPDATE | ✅ | ✅ | ✅ test.py |
+| Flutter UI | — | ✅ | E2E 🔶 |
 
 ---
 
@@ -513,4 +512,4 @@ npm run demo:notifications
 
 ---
 
-*Son güncelleme: 2026-05-19 — Postman testi tamam; Firebase/FCM açıklaması ve backend kapanış durumu eklendi.*
+*Son güncelleme: 2026-05-20 — Mobil Faz 2A UI ile uyumlu; Postman kayıtları korundu.*

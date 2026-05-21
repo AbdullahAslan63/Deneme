@@ -75,6 +75,28 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     super.dispose();
   }
 
+  String _passwordErrorMessage(BuildContext context, String key) {
+    final t = context.t.validation;
+    switch (key) {
+      case 'password_required':
+        return t.passwordRequired;
+      case 'password_too_short':
+        return t.passwordTooShort;
+      case 'password_too_long':
+        return t.passwordTooLong;
+      case 'password_uppercase_required':
+        return t.passwordUppercaseRequired;
+      case 'password_lowercase_required':
+        return t.passwordLowercaseRequired;
+      case 'password_number_required':
+        return t.passwordNumberRequired;
+      case 'password_special_char_required':
+        return t.passwordSpecialCharRequired;
+      default:
+        return context.t.features.auth.errorOccurred;
+    }
+  }
+
   void _handleRegister(BuildContext context) {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
@@ -134,11 +156,12 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       return;
     }
 
-    final passwordError = InputValidators.validatePassword(password);
-    if (passwordError != null) {
-      ref
-          .read(toastProvider.notifier)
-          .show(passwordError, type: ToastType.error);
+    final passwordErrorKey = InputValidators.validatePassword(password);
+    if (passwordErrorKey != null) {
+      ref.read(toastProvider.notifier).show(
+            _passwordErrorMessage(context, passwordErrorKey),
+            type: ToastType.error,
+          );
       return;
     }
 

@@ -5,7 +5,7 @@
 > **Backend referans:** `backend/src/`, `backend/prisma/schema.prisma`, `backend/test.py`  
 > **Plan:** [`PLAN.md`](PLAN.md) Bölüm B (B0–B6) · Özet: [`AIDATPANEL.md`](AIDATPANEL.md)
 
-**Son senkron:** Backend Faz 2A+ push (A7–A12) tamamlandı · API tabanı: `/api/v1` · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
+**Son senkron:** 2026-05-20 · Backend Faz 2A+ ✅ · Flutter B0–B6 kod ✅ · E2E: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
 
 ---
 
@@ -13,7 +13,7 @@
 
 1. **Backend tek doğruluk kaynağıdır.** Bu dosyada veya tasarımda yer alan ancak aşağıdaki endpoint/JSON örneklerinde **olmayan** alanları modele, UI’ya veya mock’a **eklemeyin**.
 2. **Prisma şemasında olup API’de dönmeyen alanları kullanmayın** (ör. `User.fcmToken` yanıtta asla gelmez; `Expense.building` nesnesi liste yanıtında yok).
-3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama. (`DUE_PAID` / `DUE_REMINDER` / `TICKET_CREATED` push **üretilir** — UI ve deep link B2–B3’te bağlanmalı.)
+3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama. (`DUE_PAID` / `DUE_REMINDER` / `TICKET_*` push **üretilir** — mobil UI ve deep link **B2–B3 kodda bağlı**; cihaz doğrulaması: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md).)
 4. **Enum değerleri** yalnızca backend’in kabul ettiği string’ler; ek değer uydurmayın.
 5. **Tutar alanları:** Gider `amount` ve özet `totalAmount` / `byCategory[].amount` API’de **string** gelir (`"1250.50"`). Parse ederken `double.tryParse` kullanın; gönderirken gider create/update body’de **number** (JSON float) gönderin.
 6. **Tarih alanları:** İstek gövdelerinde **ISO 8601** (`2026-05-15T10:00:00.000Z`). Yanıtlarda `createdAt`, `updatedAt`, `date` ISO string.
@@ -539,7 +539,7 @@ Kaynak: `AIDATPANEL.md` — `AppColors`, `AppTypography`, `AppSizes`.
 
 | Rol | Özellik | Önerilen giriş |
 |-----|---------|----------------|
-| Sakin | Talepler | `resident_dashboard` — **placeholder kaldır** → gerçek liste + FAB “Yeni talep” |
+| Sakin | Talepler | `ResidentTicketsTab` — liste + FAB “Yeni talep” ✅ |
 | Sakin | Bildirimler | Ayarlar → Bildirimler ekranı; badge `unreadCount` |
 | Yönetici | Talepler | Bina bağlamı: `building_residents` veya bina kartından “Talepler” |
 | Yönetici | Giderler | Bina detayı / Binalar sekmesi alt menü “Giderler” |
@@ -601,25 +601,27 @@ FCM tap: `notification_payload.dart` içinde `type` + `ticketId` → `context.pu
 
 ---
 
-## 13. Implementasyon sırası (PLAN B0–B6)
+## 13. Implementasyon sırası (PLAN B0–B6) — 2026-05-20
 
-| Aşama | İş | Bağımlılık |
-|-------|-----|------------|
-| **B0** | `flutterfire configure`, `firebase_options.dart` | — |
-| **B1** | FCM init, izin, `PUT /me/fcm-token`, tap handler | B0 |
-| **B2** | `features/notifications` + ayarlar linki | B1 (push için), API tek başına B2 |
-| **B3** | `features/tickets` sakin + yönetici | Auth, `apartmentId` |
-| **B4** | `features/expenses` yönetici | Seçili bina |
-| **B5** | Dashboard placeholder kaldır; duyuru UI; `main_dev` mock | B2–B4 |
-| **B6** | Manuel E2E checklist | Backend + cihaz |
+| Aşama | İş | Durum |
+|-------|-----|--------|
+| **B0** | `flutterfire configure`, `firebase_options.dart` | ✅ (iOS plist hedefe göre) |
+| **B1** | FCM init, `PUT /me/fcm-token`, tap handler | ✅ |
+| **B2** | `features/notifications` + ayarlar linki | ✅ |
+| **B3** | `features/tickets` sakin + yönetici | ✅ |
+| **B4** | `features/expenses` yönetici | ✅ |
+| **B5** | Dashboard + duyuru UI + `main_dev` mock | ✅ |
+| **B6** | Manuel E2E checklist | 🔶 [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
 
 ### 13.1 `main_dev` mock
 
-`dev/dev_mocks.dart`: Sunucusuz UI için **aynı JSON şekillerini** kullanın; fazladan alan eklemeyin.
+`dev/dev_mocks.dart` (Faz 1) + `dev/mock_faz2_datasources.dart` (gider/bildirim). Backend JSON şekliyle aynı; fazladan alan eklemeyin.
 
 ---
 
 ## 14. Manuel E2E checklist
+
+Tam liste: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md).
 
 1. [ ] Yönetici giriş → `PUT /me/fcm-token` 200  
 2. [ ] Sakin join → token kayıt  

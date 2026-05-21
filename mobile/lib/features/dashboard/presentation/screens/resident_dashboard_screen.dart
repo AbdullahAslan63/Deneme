@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/platform/system_navigator_bridge.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_sizes.dart';
@@ -13,6 +12,7 @@ import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dues/domain/entities/due_entity.dart';
 import '../../../dues/presentation/providers/dues_provider.dart';
 import '../../../dues/presentation/screens/resident_dues_tab.dart';
+import '../../../tickets/presentation/screens/resident_tickets_tab.dart';
 
 class ResidentDashboardScreen extends ConsumerStatefulWidget {
   const ResidentDashboardScreen({super.key});
@@ -149,12 +149,7 @@ class _ResidentDashboardScreenState
   }
 
   Widget _buildIssuesTab() {
-    return Center(
-      child: Text(
-        context.t.common.issuesTab,
-        style: AppTypography.h2.copyWith(color: AppColors.textPrimary),
-      ),
-    );
+    return const ResidentTicketsTab();
   }
 
   Widget _buildSettingsTab() {
@@ -184,7 +179,10 @@ class _ResidentDashboardScreenState
           child: _buildActionButton(
             icon: Icons.help_outline,
             label: context.t.common.support,
-            onTap: () {},
+            onTap: () {
+              ref.read(residentTabIndexProvider.notifier).state = 2;
+              _tabController.animateTo(2);
+            },
           ),
         ),
       ],

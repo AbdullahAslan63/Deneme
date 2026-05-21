@@ -1,11 +1,26 @@
 # AidatPanel — Kapsamlı Proje Analiz Raporu
 
-> **Tarih:** 2026-05-19 (anlık görüntü)  
-> **Kaynaklar:** `AIDATPANEL.md`, `PLAN.md`, `FLUTTER-BACKEND.md`, kod tabanı  
-> **Güncel bütünlük indeksi:** [`DOKUMANTASYON.md`](DOKUMANTASYON.md)  
-> **Mobil entegrasyon (AI/ekip):** [`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) — **önce B-ANALYZE** (tasarım eksikleri bu rapora göre değil, o anki koda göre tespit edilir)
+> **İlk tarih:** 2026-05-19 · **Son senkron:** 2026-05-20  
+> **Güncel özet (aşağıdaki bölüm esas alınır):** [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md) · [`DOKUMANTASYON.md`](DOKUMANTASYON.md) · [`PLAN.md`](PLAN.md)  
+> **E2E:** [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)
 
-**Not:** Backend push A7–A12 (`PLAN_BACKEND_PUSH.md`) bu rapordan sonra tamamlandı; aşağıdaki “eksik push” maddeleri **güncel değilse** `DOKUMANTASYON.md` ve `test.py` (120 OK) esas alınır.
+---
+
+## Güncel durum özeti (2026-05-20)
+
+| Katman | Faz 1 | Faz 2A | Not |
+|--------|-------|--------|-----|
+| Backend API + push | ✅ | ✅ | `test.py` 120 OK |
+| Flutter mobil | ✅ | ✅ kod | B0–B6 implemente; cihaz E2E 🔶 |
+| Uçtan uca Faz 2A | — | 🔶 ~%90 | Gerçek FCM + checklist |
+
+**Workspace:** `backend/` + `mobile/` aynı kök dizinde (birleşik repo).
+
+**Flutter Faz 2A (kod):** `core/notifications/`, `features/notifications|tickets|expenses/`, rotalar (`/notifications`, `/manager/tickets`, …), `main_dev` + `mock_faz2_datasources.dart`, `ApiConstants` tam, Slang Faz 2 anahtarları.
+
+**Kalan (bilinçli):** Manuel E2E, UI tasarım polish, iOS `GoogleService-Info.plist`, Faz 2B+ (dekont, RevenueCat, raporlar), ayarlarda gizlilik/yardım toast.
+
+*Aşağıdaki bölümler 2026-05-20 itibarıyla güncellenmiştir; tarihsel 2026-05-19 ifadeleri kaldırıldı veya düzeltildi.*
 
 ---
 
@@ -17,9 +32,9 @@
 |-----|--------|
 | `main` | Yalnızca `AIDATPANEL.md` |
 | [`backend/api`](https://github.com/AbdullahAslan63/Deneme/tree/backend/api) | Backend, `PLAN.md`, `docker-compose.yml`, güncel dokümantasyon |
-| [`mobile/flutter`](https://github.com/AbdullahAslan63/Deneme/tree/mobile/flutter) | Flutter uygulaması |
+| `mobile/flutter` (uzak dal) | Flutter — yerel workspace’te `mobile/` klasörü |
 
-Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `backend/` aynı kök dizinde.
+Yerel workspace: **`mobile/` + `backend/`** tek kök dizinde (`Deneme/`).
 
 ### Genel tamamlanma özeti
 
@@ -27,12 +42,12 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 |--------|-------------|-------------------------------|---------|
 | **Backend API** | ✅ ~%100 | ✅ ~%100 | ⬜ Dekont, abonelik, rapor |
 | **Database şema** | ✅ | ✅ (tablolar hazır) | Dekont/OCR alanları şemada, API yok |
-| **Flutter mobil** | ✅ ~%90 | ⬜ ~%0 | ⬜ |
-| **Firebase FCM (uçtan uca)** | ⬜ | Backend ✅ / Mobil ⬜ | — |
+| **Flutter mobil** | ✅ ~%90 | ✅ ~%95 (kod) | ⬜ Faz 2B+ |
+| **Firebase FCM (uçtan uca)** | ⬜ | Backend ✅ / Mobil ✅ kod · E2E 🔶 | — |
 | **Web landing** | ⬜ | — | — |
 | **Deployment (PM2/prod)** | ⬜ | — | — |
 
-**Kritik bulgu:** Backend Faz 2A production-ready; Flutter Faz 2A **henüz başlamamış**. Dokümantasyon (`AIDATPANEL.md` + `PLAN.md`) ile backend kodu **yüksek uyumlu**; mobil kod ile dokümantasyon arasında **büyük gap** var.
+**Özet:** Backend Faz 2A production-ready. Flutter Faz 2A **kod tamam**; kalan: gerçek cihazda E2E doğrulaması ve UI polish.
 
 ### Çalışır durum doğrulaması
 
@@ -42,8 +57,8 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 | PostgreSQL | ✅ | `docker-compose.yml` (5433), Prisma migrate |
 | Postman bildirim testleri | ✅ | Önceki oturum: register, FCM token, seed, read |
 | `test.py` | ✅ | 120 OK (yerel: `AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1`) |
-| Flutter prod build | ⚠️ Faz 1 akışları | FCM/Faz 2 ekranları yok |
-| Gerçek FCM push | ⬜ | `FIREBASE_SERVICE_ACCOUNT_JSON` + mobil init gerekli |
+| Flutter prod build | ✅ Faz 1 + Faz 2A ekranları | E2E cihazda doğrulanmalı |
+| Gerçek FCM push | 🔶 | Backend env + mobil token + fiziksel cihaz / Play AVD |
 
 ---
 
@@ -80,7 +95,7 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 
 **Altyapı**
 - Express 5, Helmet, CORS, Zod doğrulama, merkezi hata handler
-- Prisma 7 + PostgreSQL; migration’lar `backend/prisma/migrations/` (5 klasör, 2026-05-19)
+- Prisma 7 + PostgreSQL; migration’lar `backend/prisma/migrations/` (2 migration klasörü, 2026-05-20)
 - `test.py` — Faz 1 + Faz 2A smoke senaryoları
 
 ### Mobile — Faz 1 (doğrulandı)
@@ -96,7 +111,7 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 **Sakin dashboard (4 sekme)**
 - Ana sayfa: aidat özeti (API’den)
 - Aidatlarım: tam implementasyon
-- Talepler: **placeholder** (bkz. eksikler)
+- Talepler: ✅ `ResidentTicketsTab` *(2026-05-20 güncelleme)*
 - Ayarlar: paylaşımlı `SettingsTab`
 
 **Teknik**
@@ -128,35 +143,39 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 | WhatsApp/SMS hatırlatma | ⬜ | ⬜ | 3 |
 | Web landing (`web/`) | ⬜ | — | 1 |
 | PM2 / `ecosystem.config.js` | ⬜ | — | Deploy |
-| `DUE_REMINDER`, `DUE_PAID` push | ✅ | ⬜ UI/deep link | 2A Flutter |
-| Yeni talep → yönetici (`TICKET_CREATED`) | ✅ | ⬜ UI/deep link | 2A Flutter |
+| `DUE_REMINDER`, `DUE_PAID` push | ✅ | ✅ deep link (dashboard/route) | E2E cihaz 🔶 |
+| Yeni talep → yönetici (`TICKET_CREATED`) | ✅ | ✅ deep link + talep UI | E2E cihaz 🔶 |
 
-### PLAN.md Faz 2A — Flutter (B0–B6) — tamamı eksik
+### PLAN.md Faz 2A — Flutter (B0–B6) — 2026-05-20 durumu
 
-| Aşama | İçerik | Durum |
-|-------|--------|-------|
-| B0 | Firebase dosyaları, `flutterfire configure` | ⬜ |
-| B1 | FCM çekirdek (`fcm_service`, token upload) | ⬜ |
-| B2 | Bildirim feature (data + UI) | ⬜ |
-| B3 | Talep feature (sakin + yönetici) | ⬜ |
-| B4 | Gider feature | ⬜ |
-| B5 | Dashboard entegrasyonu, `main_dev` mock | ⬜ |
-| B6 | Flutter test & E2E checklist | ⬜ |
+| Aşama | İçerik | Durum (2026-05-20) |
+|-------|--------|---------------------|
+| B0 | Firebase dosyaları | ✅ (iOS plist hedefe göre) |
+| B1 | FCM çekirdek | ✅ |
+| B2 | Bildirim feature | ✅ |
+| B3 | Talep feature | ✅ |
+| B4 | Gider feature | ✅ |
+| B5 | Dashboard + `main_dev` mock | ✅ |
+| B6 | Test & E2E checklist | 🔶 [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
 
-### Mobil spesifik eksikler
+### Mobil — tamamlanan (Faz 2A kod)
 
-- Firebase init, push izinleri, foreground/background/tap handler
-- `PUT /me/fcm-token` çağrısı (storage hazır, upload yok)
-- Bildirim listesi ekranı, okundu badge, deep link
-- Yönetici duyuru UI
-- Talep listesi, oluşturma, detay, not, durum ekranları
-- Gider listesi, form, aylık özet kartı
-- `PUT /me/language` backend senkronizasyonu
-- Gizlilik/KVKK/yardım sayfaları (coming soon toast)
-- Sakin: ödeme yap, faturalarım, destek hızlı aksiyonları (no-op)
-- İşlem geçmişi (her zaman boş → coming soon)
-- Environment/flavor (`baseUrl` hardcoded production)
-- `ApiConstants.notificationsReadAll` sabiti bile tanımlı değil
+- Firebase `initFirebase`, FCM token → `PUT /me/fcm-token`, `FcmScope` (foreground/tap)
+- Bildirim listesi, okundu, read-all, ayarlarda badge + `/notifications`
+- Duyuru: `AnnouncementFormSheet` + `POST .../announcements`
+- Talep: `ResidentTicketsTab`, `ManagerTicketsScreen`, `TicketDetailScreen`, durum/not kuralları
+- Gider: `ManagerExpensesScreen`, CRUD, özet, `ExpenseFormSheet`
+- `ApiConstants` Faz 2 sabitleri tanımlı ve kullanılıyor
+- Yerel API: `--dart-define=API_BASE_URL=...` (`api_config.dart`)
+
+### Mobil — kalan (Faz 2A dışı veya doğrulama)
+
+- Manuel E2E checklist ([`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md))
+- iOS `GoogleService-Info.plist` (hedef için `flutterfire configure`)
+- `PUT /me/language` backend senkronu (opsiyonel)
+- Gizlilik/KVKK/yardım: `comingSoon` toast (3 ayar satırı)
+- Sakin ana sayfa: ödeme/faturalar no-op; işlem geçmişi boş
+- UI tasarım polish (bilinçli ertelendi)
 
 ### Backend spesifik eksikler (Faz 2A dışı)
 
@@ -196,24 +215,20 @@ Yerel workspace’te **her iki dal birleştirilmiş** durumda: `mobile/` + `back
 | FCM sequential send | **Düşük** | Büyük binalarda duyuru yavaş/DoS riski |
 | `.env` commit | ⚠️ | `.gitignore`’da; yerel `.env` untracked olmalı |
 
-### Placeholder / sahte implementasyon envanteri
+### Kısmi UI / iskelet envanteri (2026-05-20)
 
-| Konum | Tür |
-|-------|-----|
-| `features/notifications/` (6 alt klasör) | `.gitkeep` iskelet |
-| `features/tickets/` | `.gitkeep` iskelet |
-| `features/expenses/` | `.gitkeep` iskelet |
-| `features/reports/`, `subscription/` | `.gitkeep` iskelet |
-| `resident_dashboard._buildIssuesTab()` | Yalnızca metin |
-| `settings_tab` × 4 satır | `_showComingSoon()` toast |
-| Sakin quick actions | `onTap: () {}` no-op |
-| `widget_test.dart` | `expect(true, isTrue)` |
-| `SecureStorage.saveFcmToken()` | Hiç çağrılmıyor |
-| `firebase_core/messaging` pubspec | Import/init yok |
+| Konum | Durum |
+|-------|--------|
+| `features/notifications/`, `tickets/`, `expenses/` | ✅ API + UI (bazı alt klasörlerde `.gitkeep` kalabilir) |
+| `features/reports/`, `subscription/` | ⬜ Faz 2B+ iskelet |
+| `settings_tab` (gizlilik, yardım, çoklu dil) | `comingSoon` toast |
+| Sakin ana sayfa quick actions (ödeme, faturalar) | no-op |
+| İşlem geçmişi | boş + coming soon metni |
+| `widget_test.dart` | şablon test |
 
 ### TODO/FIXME taraması
 
-`backend/src` ve `mobile/lib` içinde anlamlı `TODO`/`FIXME` **bulunamadı**. Eksiklikler açık placeholder ve boş klasörlerle görünür durumda.
+`backend/src` ve `mobile/lib` içinde anlamlı `TODO`/`FIXME` **bulunamadı** (2026-05-20).
 
 ---
 
@@ -231,20 +246,21 @@ mobile/lib/
 │   ├── apartments/    ✅ tam
 │   ├── dues/          ✅ tam
 │   ├── profile/       ✅ kısmi (widget’lar, ayrı screen yok)
-│   ├── dashboard/     🔶 UI var, data/domain iskelet
-│   ├── notifications/ ⬜ iskelet
-│   ├── tickets/       ⬜ iskelet
-│   ├── expenses/      ⬜ iskelet
-│   ├── reports/       ⬜ iskelet
-│   └── subscription/  ⬜ iskelet
+│   ├── dashboard/     ✅ manager + resident (+ Faz 2 kısayolları)
+│   ├── notifications/ ✅ liste, duyuru, datasource
+│   ├── tickets/       ✅ sakin/yönetici/detay, repository
+│   ├── expenses/      ✅ CRUD, özet, form sheet
+│   ├── reports/       ⬜ Faz 2B+ iskelet
+│   └── subscription/  ⬜ Faz 3 iskelet
+├── core/notifications/ ✅ FCM, payload
 ├── shared/widgets/    ✅ settings, toast, empty state, error
-└── dev/dev_mocks.dart ✅ Faz 1 mock’ları
+└── dev/               ✅ dev_mocks.dart, mock_faz2_datasources.dart
 ```
 
 ### State management & routing
 
 - **Riverpod:** `StateNotifier` + `Provider`; `riverpod_annotation` pubspec’te var, kodda kullanılmıyor
-- **GoRouter:** 8 rota; alt ekranlar `Navigator.push` ile (tutarsız back stack)
+- **GoRouter:** auth + dashboard + Faz 2 (`/notifications`, `/manager/tickets`, `/tickets/:id`, …); bina ekranları `Navigator.push`
 - **Dio:** Bearer interceptor, 401’de refresh, ayrı `_refreshDio`
 
 ### API entegrasyon haritası
@@ -252,59 +268,58 @@ mobile/lib/
 | ApiConstants grubu | Kullanılıyor | Kullanılmıyor |
 |--------------------|--------------|---------------|
 | Auth, buildings, apartments, dues, profile | ✅ | — |
-| Expenses, tickets, notifications, fcmToken | — | ❌ |
-| changeLanguage, subscription, reports | — | ❌ |
+| Expenses, tickets, notifications, fcmToken, announcements | ✅ | — |
+| changeLanguage, subscription, reports | — | Faz 2B+ / opsiyonel |
 
 ### Firebase / FCM durumu
 
 | Bileşen | Durum |
 |---------|--------|
-| `pubspec.yaml` bağımlılıkları | ✅ tanımlı |
-| `firebase_options.dart` | ❌ |
-| `google-services.json` / iOS plist | ❌ |
-| `Firebase.initializeApp()` | ❌ |
-| Android POST_NOTIFICATIONS | ❌ |
-| Token → backend upload | ❌ |
+| `pubspec.yaml` bağımlılıkları | ✅ |
+| `firebase_options.dart` | ✅ |
+| `google-services.json` (Android) | ✅ |
+| iOS `GoogleService-Info.plist` | 🔶 hedef bundle |
+| `initFirebase()` (`main.dart`) | ✅ |
+| Token → `PUT /me/fcm-token` | ✅ (`fcm_service`, `syncFcmAfterAuth`) |
+| Gerçek cihaz push | 🔶 E2E checklist |
 
 ### UI/UX değerlendirmesi
 
 **Güçlü yanlar:** Material 3, tutarlı renk/tipografi token’ları, TR/EN, loading/error state’leri (bina/aidat), KVKK hesap silme dialog
 
-**Zayıf yanlar:**
-- Sakin “Talepler” sekmesi kullanıcıya değer sunmuyor
-- Ayarlarda 4 özellik “yakında” — güven eksikliği
-- `issuesTab` metni geliştirici placeholder (“Arızalar Sekmesi”)
-- Production API URL hardcoded — local backend test için `--dart-define` veya flavor yok
+**Zayıf yanlar (2026-05-20):**
+- Ayarlarda gizlilik/yardım/çoklu dil hâlâ `comingSoon` toast
+- Sakin ana sayfa: ödeme/faturalar no-op; işlem geçmişi boş
 - Nunito font adı tanımlı, asset yok → sistem fontu
+- Tasarım polish ertelendi (fonksiyon öncelikli tamamlandı)
 
 ### Test durumu
 
 | Dosya | Kapsam |
 |-------|--------|
 | `auth_validators_test.dart` | ✅ invite code validasyon |
-| `widget_test.dart` | ⬜ anlamsız placeholder |
+| `widget_test.dart` | şablon · `notification_payload_test.dart` ✅ |
 
 ---
 
 ## Database Analizi
 
-### Migration geçmişi
+### Migration geçmişi (`backend/prisma/migrations/`)
 
-1. `20260510005756_init` — çekirdek modeller
-2. `20260510023405_user_deleted_at_password_reset` — KVKK + şifre sıfırlama
-3. `20260515120000_dekont_system` — Dekont, DuePayment, tahsilat alanları, bildirim enum genişlemesi
+1. `20260519001941_init` — çekirdek + Faz 2A modelleri
+2. `20260519010242_ticket_created_notification_type` — `TICKET_CREATED` bildirim tipi
 
 ### Şema vs API uyumu
 
 | Model | Şema | API | Mobil |
 |-------|------|-----|-------|
-| User (+ fcmToken, refreshTokenVersion, deletedAt) | ✅ | ✅ | 🔶 fcmToken alanı var, upload yok |
+| User (+ fcmToken, refreshTokenVersion, deletedAt) | ✅ | ✅ | ✅ token upload |
 | Building (+ collectionIban alanları) | ✅ | ✅ CRUD | ✅ |
 | Apartment (tek sakin @unique) | ✅ | ✅ | ✅ |
 | Due (+ dueDate, overdueDays) | ✅ | ✅ | ✅ |
-| Expense (+ receiptUrl) | ✅ | ✅ | ⬜ |
-| Ticket + TicketUpdate | ✅ | ✅ | ⬜ |
-| Notification (+ data Json) | ✅ | ✅ | ⬜ |
+| Expense (+ receiptUrl) | ✅ | ✅ | ✅ |
+| Ticket + TicketUpdate | ✅ | ✅ | ✅ |
+| Notification (+ data Json) | ✅ | ✅ | ✅ |
 | Dekont (15+ status enum) | ✅ | ⬜ | ⬜ |
 | Subscription | ✅ | ⬜ | ⬜ |
 
@@ -330,13 +345,13 @@ backend/
 │   ├── config/              db.js, firebase.js
 │   ├── routes/              10 route modülü
 │   ├── controllers/         10 controller
-│   ├── services/            12+ servis (+ fcmTokenService WIP)
+│   ├── services/            notification, ticket, expense, push, fcmToken, …
 │   ├── middlewares/         auth, validate, rateLimit, error, role
 │   ├── utils/               access, httpError, trDueDate, notificationPayload
 │   ├── validators/          authValidator, notificationValidator
-│   └── constants/           notificationConstants (WIP)
-├── test.py                  # ~1300 satır smoke test
-└── postman/                 # Notifications collection (WIP, untracked)
+│   └── constants/           notificationConstants
+├── test.py                  # smoke test (120 OK)
+└── postman/                 # AidatPanel-Notifications.postman_collection.json
 ```
 
 ### API endpoint doğrulama (AIDATPANEL.md tablolarına karşı)
@@ -356,13 +371,12 @@ backend/
 
 Tüm aşamalar ✅ işaretli; kod incelemesi bunu **doğruluyor**.
 
-### Bildirim modülü (ek WIP)
+### Bildirim modülü
 
-Stash’ten geri gelen yerel iyileştirmeler (henüz commit edilmemiş):
 - `notificationValidator.js`, `notificationConstants.js`, `notificationPayload.js`
-- `fcmTokenService.js`, `notificationDemo.js`
-- `POST /notifications/dev/seed` + `/_e2e/seed` geriye dönük uyumluluk
-- Postman collection
+- `fcmTokenService.js`, `pushService.js`, `notificationDemo.js`
+- E2E seed: `AIDATPANEL_E2E=1` ile `POST /notifications/_e2e/seed`
+- Postman: `backend/postman/AidatPanel-Notifications.postman_collection.json`
 
 ### Performans notları
 
@@ -383,21 +397,18 @@ Stash’ten geri gelen yerel iyileştirmeler (henüz commit edilmemiş):
 | Login / Register / Join | Herkes | ✅ |
 | Forgot / Reset password | Herkes | ✅ |
 | Manager dashboard | MANAGER | ✅ (Faz 1) |
-| Resident dashboard | RESIDENT | 🔶 (aidat ✅, talep ⬜) |
+| Resident dashboard | RESIDENT | ✅ (aidat + talep sekmesi) |
 | Add building, building residents, invite code | MANAGER | ✅ (Navigator.push) |
 
-### Eksik ekranlar (dokümantasyon + PLAN)
+### Eksik ekranlar (Faz 2B+ / polish)
 
-- NotificationsScreen
-- Ticket list / detail / create (sakin + yönetici)
-- Expenses list / form / summary
-- Manager announcement compose
 - Reports, subscription paywall
-- Legal pages (privacy, KVKK, help)
+- Legal pages (privacy, KVKK, help) — ayarlarda toast
+- Dekont upload UI
 
 ### Frontend / backend sözleşme uyumu
 
-`ApiConstants` backend path’leriyle **uyumlu tanımlanmış** ancak Faz 2 sabitlerinin **%60’ı kullanılmıyor**. Flutter login/register response key’leri `test.py` içinde `FLUTTER_*_KEYS` ile doğrulanmış — **Faz 1 sözleşmesi sağlam**.
+`ApiConstants` backend path’leriyle **uyumlu**; Faz 2 sabitleri **kullanımda**. Faz 1 login/register sözleşmesi `test.py` `FLUTTER_*_KEYS` ile doğrulanmış.
 
 ---
 
@@ -416,14 +427,11 @@ Stash’ten geri gelen yerel iyileştirmeler (henüz commit edilmemiş):
 | Bildirim | Not/durum değişince `TICKET_UPDATE` → DB + FCM |
 | Yetki | Yanlış erişim → 404 |
 
-**Eksik (ürün):** Yeni talep açıldığında yönetici push — PLAN/AIDATPANEL’de zorunlu değil.
+### Mobile — ✅ Tam (Faz 2A kod)
 
-### Mobile — ⬜ Yok
-
-- `features/tickets/` tamamen `.gitkeep`
-- Sakin “Arızalar” sekmesi: `Center(child: Text(context.t.common.issuesTab))`
-- GoRouter’da ticket rotası yok
-- `myTickets`, `buildingTickets`, `ticket`, `ticketUpdates` — **sıfır kullanım**
+- `ResidentTicketsTab`, `ManagerTicketsScreen`, `TicketDetailScreen`, `CreateTicketScreen`
+- Rotalar: `/tickets/new`, `/tickets/:ticketId`, `/manager/tickets`
+- `TICKET_CREATED` / `TICKET_UPDATE` deep link (`notification_payload.dart`)
 
 ### Database — ✅ Hazır
 
@@ -433,21 +441,19 @@ Stash’ten geri gelen yerel iyileştirmeler (henüz commit edilmemiş):
 
 ## Öncelik Sırasına Göre Yapılması Gerekenler
 
-### P0 — Kritik (Faz 2A tamamlama)
+### P0 — Kritik (2026-05-20)
 
-1. **B0–B1:** Firebase Console + `flutterfire configure` + FCM token → `PUT /me/fcm-token`
-2. **B2:** Bildirim listesi UI + okundu + ayarlardan gerçek ekrana geçiş
-3. **B3:** Sakin talep sekmesi + yönetici talep yönetimi
-4. **`test.py`:** Yerel koşumda `AIDATPANEL_API_BASE` env kullanın (120 OK doğrulandı)
-5. **Dal birleştirme:** `mobile/` + `backend/` tek dalda commit (şu an staged/unstaged karışık)
+1. **Manuel E2E:** [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) — 2 hesap, gerçek cihaz / Play AVD
+2. **iOS Firebase:** `flutterfire configure` → `GoogleService-Info.plist`
+3. **`test.py` yerel:** `AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1`
 
-### P1 — Yüksek
+### P1 — Yüksek (2026-05-20)
 
-6. **B4:** Gider UI (yönetici)
-7. **B5:** Dashboard kısayolları, duyuru UI, `main_dev` mock genişletme
-8. **`ApiConstants.notificationsReadAll`** ekle ve B2’de kullan
-9. **`PUT /me/language`** mobil senkronizasyonu
-10. **Environment config:** dev/staging/prod `baseUrl` (flavor veya `--dart-define`)
+6. ~~B4–B5 Faz 2A kod~~ ✅
+7. **E2E checklist** — gerçek cihaz
+8. **`PUT /me/language`** mobil senkronizasyonu (opsiyonel)
+9. **UI tasarım polish**
+10. **iOS** `GoogleService-Info.plist`
 
 ### P2 — Orta
 
@@ -496,13 +502,9 @@ cd backend && AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1 python test.py
 
 ### Kısa vade (1–2 hafta) — PLAN B0–B5
 
-1. Firebase projesi oluştur → Android/iOS config dosyaları
-2. `core/notifications/fcm_service.dart` → login sonrası token upload
-3. `NotificationsScreen` + provider → `GET/PATCH /notifications`
-4. `ResidentTicketsTab` + `ManagerTicketsScreen` → ticket API
-5. `ExpensesListScreen` → gider API
-6. Yönetici duyuru bottom sheet → `POST .../announcements`
-7. Slang: `features.notifications`, `features.tickets`, `features.expenses` anahtarları
+1. ~~Faz 2A kod maddeleri~~ ✅ (2026-05-20)
+2. E2E checklist tamamlama
+3. UI tasarım polish
 
 ### Orta vade
 
@@ -519,15 +521,15 @@ cd backend && AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1 python test.py
 |------------------------|---------|-------|-----|
 | Auth + JWT + KVKK delete | ✅ | ✅ | |
 | Bina/daire/davet/aidat | ✅ | ✅ | |
-| Gider API | ✅ | ⬜ | Faz 2A backend done |
-| Talep API | ✅ | ⬜ | |
-| Bildirim + duyuru + FCM | ✅ | ⬜ | |
-| Firebase mobil init | — | ⬜ | PLAN B0–B1 |
+| Gider API | ✅ | ✅ | |
+| Talep API | ✅ | ✅ | |
+| Bildirim + duyuru + FCM | ✅ | ✅ kod · E2E 🔶 | |
+| Firebase mobil init | — | ✅ | B0–B1 |
 | Dekont/OCR | ⬜ | ⬜ | Şema hazır |
 | Abonelik/RevenueCat | ⬜ | ⬜ | |
 | Web landing | ⬜ | — | |
 | docker-compose | ✅ | — | AIDATPANEL eski not “yok” diyor — **güncel değil** |
-| i18n TR/EN | — | ✅ | Faz 2 domain key’leri eksik |
+| i18n TR/EN | — | ✅ | Faz 2 Slang anahtarları eklendi (2026-05-20) |
 
 ---
 
@@ -535,14 +537,14 @@ cd backend && AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1 python test.py
 
 | Alan | Borç |
 |------|------|
-| Mobil | 5 boş feature modülü, kullanılmayan Firebase deps, unused pubspec codegen |
-| Mobil | `.gitkeep` + gerçek dosya karışık klasörler |
+| Mobil | Faz 2B+ (`reports`, `subscription` iskelet); E2E cihaz doğrulaması |
+| Mobil | Kalan `.gitkeep` dosyaları (temizlik opsiyonel) |
 | Backend | `authService.js` dead code, `strictLimiter` unused |
 | Backend | PLAN vs kod: `createMany`/`sendBatch` drift |
 | Test | Mobil test coverage ~%5; backend `test.py` güçlü ama typo |
 | DevOps | PM2, CI pipeline, docker-test script eksik |
-| Docs | Dal bazlı AIDATPANEL sürüm farkı; birleşik dal gerekli |
+| Docs | 2026-05-20 senkron; uzak dal ile yerel workspace farkı commit ile yönetilmeli |
 
 ---
 
-*Rapor: `AIDATPANEL.md`, `PLAN.md`, `FLUTTER-BACKEND.md`, backend route/service kaynak kodu, Prisma şema, Flutter `lib/` (~92 dart), git durumu ve çalışan dev sunucusu esas alınarak üretilmiştir.*
+*Son senkron: 2026-05-20 — tüm proje `.md` dosyaları kod tabanı ile hizalandı. Güncel gap: `FLUTTER_GAP_RAPORU.md`.*

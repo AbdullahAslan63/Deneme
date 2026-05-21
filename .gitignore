@@ -10,6 +10,9 @@ backend/build/
 backend/coverage/
 backend/e2e-data/
 backend/.env
+# Firebase Admin SDK (asla commit etme)
+backend/*-firebase-adminsdk*.json
+**/*-firebase-adminsdk*.json
 
 # Mobile / Flutter
 mobile/.dart_tool/

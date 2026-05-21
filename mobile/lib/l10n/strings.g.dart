@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 704 (352 per locale)
+/// Strings: 888 (444 per locale)
 ///
-/// Built on 2026-05-13 at 20:25 UTC
+/// Built on 2026-05-20 at 23:59 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -207,8 +207,8 @@ class _StringsCommonEn {
 	String get user => 'User';
 	String get welcome => 'Welcome';
 	String get managedBuildings => 'Managed Buildings';
-	String get issues => 'Issues';
-	String get issuesTab => 'Issues Tab';
+	String get issues => 'Requests';
+	String get issuesTab => 'Requests Tab';
 	String get apartment => 'Apartment';
 	String get addBuilding => 'Add Building';
 	String get inviteCode => 'Invite Code';
@@ -455,6 +455,10 @@ class _StringsFeaturesEn {
 	late final _StringsFeaturesBuildingsEn buildings = _StringsFeaturesBuildingsEn._(_root);
 	late final _StringsFeaturesAuthEn auth = _StringsFeaturesAuthEn._(_root);
 	late final _StringsFeaturesApartmentsEn apartments = _StringsFeaturesApartmentsEn._(_root);
+	late final _StringsFeaturesTicketsEn tickets = _StringsFeaturesTicketsEn._(_root);
+	late final _StringsFeaturesExpensesEn expenses = _StringsFeaturesExpensesEn._(_root);
+	late final _StringsFeaturesNotificationsEn notifications = _StringsFeaturesNotificationsEn._(_root);
+	late final _StringsFeaturesFaz2En faz2 = _StringsFeaturesFaz2En._(_root);
 }
 
 // Path: db_context
@@ -572,6 +576,134 @@ class _StringsFeaturesApartmentsEn {
 	String get residentPanel => 'Resident Panel';
 }
 
+// Path: features.tickets
+class _StringsFeaturesTicketsEn {
+	_StringsFeaturesTicketsEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get myTickets => 'My requests';
+	String get newTicket => 'New request';
+	String get createTitle => 'Report issue / request';
+	String get fieldTitle => 'Title';
+	String get fieldTitleHint => 'e.g. Elevator malfunction';
+	String get fieldDescription => 'Description';
+	String get fieldDescriptionHint => 'Briefly describe the issue';
+	String get fieldCategory => 'Category';
+	String get categoryComplaint => 'Complaint';
+	String get categoryRequest => 'Request';
+	String get categoryMalfunction => 'Malfunction';
+	String get categoryOther => 'Other';
+	String get submit => 'Submit';
+	String get createSuccess => 'Your request has been submitted';
+	String get emptyTitle => 'No requests yet';
+	String get emptySubtitle => 'Report an issue or request from here';
+	String get titleTooShort => 'Title must be at least 3 characters';
+	String get descriptionTooShort => 'Description must be at least 10 characters';
+	String get statusOpen => 'Open';
+	String get statusInProgress => 'In progress';
+	String get statusResolved => 'Resolved';
+	String get statusClosed => 'Closed';
+	String get detailTitle => 'Request details';
+	String get managerTitle => 'Building requests';
+	String get statusLabel => 'Status';
+	String get updatesTitle => 'Updates';
+	String get changeStatus => 'Change status';
+	String get managerNote => 'Manager note';
+	String get addNote => 'Add note';
+	String get statusUpdated => 'Status updated';
+	String get noteAdded => 'Note added';
+	String get loadError => 'Could not load requests';
+	String get noteDisabledClosed => 'Cannot add notes to a closed request';
+	String get statusClosedHint => 'This request is closed; status cannot be changed.';
+	String get apartmentRequired => 'Apartment not linked. Please sign in again.';
+}
+
+// Path: features.expenses
+class _StringsFeaturesExpensesEn {
+	_StringsFeaturesExpensesEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get title => 'Expenses';
+	String get createTitle => 'Add expense';
+	String get fieldTitle => 'Title';
+	String get fieldAmount => 'Amount';
+	String get fieldCategory => 'Category';
+	String get fieldNote => 'Note (optional)';
+	String get submit => 'Save';
+	String get required => 'Required';
+	String get amountInvalid => 'Enter a valid amount';
+	String get total => 'Total';
+	String get createSuccess => 'Expense saved';
+	String get categoryCleaning => 'Cleaning';
+	String get categoryElevator => 'Elevator';
+	String get categoryElectricity => 'Electricity';
+	String get categoryWater => 'Water';
+	String get categoryInsurance => 'Insurance';
+	String get categoryRepair => 'Repair';
+	String get categoryGarden => 'Garden';
+	String get categoryOther => 'Other';
+	String get fieldDate => 'Date';
+	String get fieldMonth => 'Month';
+	String get fieldYear => 'Year';
+	String get editTitle => 'Edit expense';
+	String get editAction => 'Edit';
+	String get deleteTitle => 'Delete expense';
+	String get deleteAction => 'Delete';
+	String get deleteConfirm => 'Are you sure you want to delete this expense?';
+	String get deleteSuccess => 'Expense deleted';
+	String get updateSuccess => 'Expense updated';
+	String get loadError => 'Could not load expenses';
+	String get emptyTitle => 'No expenses this period';
+	String get emptySubtitle => 'Add a new expense from the top-right button';
+}
+
+// Path: features.notifications
+class _StringsFeaturesNotificationsEn {
+	_StringsFeaturesNotificationsEn._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get markAllRead => 'Mark all read';
+	String get emptyTitle => 'No notifications';
+	String get emptySubtitle => 'New notifications will appear here';
+	String get loadError => 'Could not load notifications';
+	String get typeDueReminder => 'Due reminder';
+	String get typeDuePaid => 'Due paid';
+	String get typeTicketCreated => 'New request';
+	String get typeTicketUpdate => 'Request updated';
+	String get typeAnnouncement => 'Announcement';
+	String get typeSystem => 'System';
+	String get typeOther => 'Notification';
+	String get sendTitle => 'Announcement to residents';
+	String get fieldTitle => 'Title';
+	String get fieldBody => 'Message';
+	String get sendButton => 'Send';
+	String get sendSuccess => 'Announcement sent';
+	String get sendFailed => 'Could not send announcement';
+	String get fieldRequired => 'Required field';
+	String get titleTooLong => 'Title must be at most 120 characters';
+	String get bodyTooLong => 'Message must be at most 2000 characters';
+	String get noBuilding => 'Add a building first';
+}
+
+// Path: features.faz2
+class _StringsFeaturesFaz2En {
+	_StringsFeaturesFaz2En._(this._root);
+
+	final Translations _root; // ignore: unused_field
+
+	// Translations
+	String get sectionTitle => 'Phase 2';
+	String get tickets => 'Requests';
+	String get expenses => 'Expenses';
+	String get announcement => 'Announce';
+}
+
 // Path: <root>
 class _StringsTr implements Translations {
 	/// You can call this constructor and build your own translation instance of this locale.
@@ -655,8 +787,8 @@ class _StringsCommonTr implements _StringsCommonEn {
 	@override String get user => 'Kullanıcı';
 	@override String get welcome => 'Hoş Geldiniz';
 	@override String get managedBuildings => 'Yönetilen Binalar';
-	@override String get issues => 'Arızalar';
-	@override String get issuesTab => 'Arızalar Sekmesi';
+	@override String get issues => 'Talepler';
+	@override String get issuesTab => 'Talepler Sekmesi';
 	@override String get apartment => 'Daire';
 	@override String get addBuilding => 'Bina Ekle';
 	@override String get inviteCode => 'Davet Kodu';
@@ -903,6 +1035,10 @@ class _StringsFeaturesTr implements _StringsFeaturesEn {
 	@override late final _StringsFeaturesBuildingsTr buildings = _StringsFeaturesBuildingsTr._(_root);
 	@override late final _StringsFeaturesAuthTr auth = _StringsFeaturesAuthTr._(_root);
 	@override late final _StringsFeaturesApartmentsTr apartments = _StringsFeaturesApartmentsTr._(_root);
+	@override late final _StringsFeaturesTicketsTr tickets = _StringsFeaturesTicketsTr._(_root);
+	@override late final _StringsFeaturesExpensesTr expenses = _StringsFeaturesExpensesTr._(_root);
+	@override late final _StringsFeaturesNotificationsTr notifications = _StringsFeaturesNotificationsTr._(_root);
+	@override late final _StringsFeaturesFaz2Tr faz2 = _StringsFeaturesFaz2Tr._(_root);
 }
 
 // Path: db_context
@@ -1020,6 +1156,134 @@ class _StringsFeaturesApartmentsTr implements _StringsFeaturesApartmentsEn {
 	@override String get residentPanel => 'Sakin Paneli';
 }
 
+// Path: features.tickets
+class _StringsFeaturesTicketsTr implements _StringsFeaturesTicketsEn {
+	_StringsFeaturesTicketsTr._(this._root);
+
+	@override final _StringsTr _root; // ignore: unused_field
+
+	// Translations
+	@override String get myTickets => 'Taleplerim';
+	@override String get newTicket => 'Yeni Talep';
+	@override String get createTitle => 'Arıza / Talep Bildir';
+	@override String get fieldTitle => 'Başlık';
+	@override String get fieldTitleHint => 'Örn: Asansör arızası';
+	@override String get fieldDescription => 'Açıklama';
+	@override String get fieldDescriptionHint => 'Sorunu kısaca anlatın';
+	@override String get fieldCategory => 'Kategori';
+	@override String get categoryComplaint => 'Şikayet';
+	@override String get categoryRequest => 'Talep';
+	@override String get categoryMalfunction => 'Arıza';
+	@override String get categoryOther => 'Diğer';
+	@override String get submit => 'Gönder';
+	@override String get createSuccess => 'Talebiniz alındı';
+	@override String get emptyTitle => 'Henüz talep yok';
+	@override String get emptySubtitle => 'Arıza veya talebinizi buradan bildirebilirsiniz';
+	@override String get titleTooShort => 'Başlık en az 3 karakter olmalı';
+	@override String get descriptionTooShort => 'Açıklama en az 10 karakter olmalı';
+	@override String get statusOpen => 'Açık';
+	@override String get statusInProgress => 'İşlemde';
+	@override String get statusResolved => 'Çözüldü';
+	@override String get statusClosed => 'Kapalı';
+	@override String get detailTitle => 'Talep Detayı';
+	@override String get managerTitle => 'Bina Talepleri';
+	@override String get statusLabel => 'Durum';
+	@override String get updatesTitle => 'Güncellemeler';
+	@override String get changeStatus => 'Durum değiştir';
+	@override String get managerNote => 'Yönetici notu';
+	@override String get addNote => 'Not ekle';
+	@override String get statusUpdated => 'Durum güncellendi';
+	@override String get noteAdded => 'Not eklendi';
+	@override String get loadError => 'Talepler yüklenemedi';
+	@override String get noteDisabledClosed => 'Kapalı talebe not eklenemez';
+	@override String get statusClosedHint => 'Bu talep kapatıldı; durum değiştirilemez.';
+	@override String get apartmentRequired => 'Daire bilgisi bulunamadı. Lütfen tekrar giriş yapın.';
+}
+
+// Path: features.expenses
+class _StringsFeaturesExpensesTr implements _StringsFeaturesExpensesEn {
+	_StringsFeaturesExpensesTr._(this._root);
+
+	@override final _StringsTr _root; // ignore: unused_field
+
+	// Translations
+	@override String get title => 'Giderler';
+	@override String get createTitle => 'Gider Ekle';
+	@override String get fieldTitle => 'Başlık';
+	@override String get fieldAmount => 'Tutar (₺)';
+	@override String get fieldCategory => 'Kategori';
+	@override String get fieldNote => 'Not (opsiyonel)';
+	@override String get submit => 'Kaydet';
+	@override String get required => 'Zorunlu alan';
+	@override String get amountInvalid => 'Geçerli tutar girin';
+	@override String get total => 'Toplam';
+	@override String get createSuccess => 'Gider kaydedildi';
+	@override String get categoryCleaning => 'Temizlik';
+	@override String get categoryElevator => 'Asansör';
+	@override String get categoryElectricity => 'Elektrik';
+	@override String get categoryWater => 'Su';
+	@override String get categoryInsurance => 'Sigorta';
+	@override String get categoryRepair => 'Onarım';
+	@override String get categoryGarden => 'Bahçe';
+	@override String get categoryOther => 'Diğer';
+	@override String get fieldDate => 'Tarih';
+	@override String get fieldMonth => 'Ay';
+	@override String get fieldYear => 'Yıl';
+	@override String get editTitle => 'Gideri Düzenle';
+	@override String get editAction => 'Düzenle';
+	@override String get deleteTitle => 'Gideri sil';
+	@override String get deleteAction => 'Sil';
+	@override String get deleteConfirm => 'Bu gider kaydını silmek istediğinize emin misiniz?';
+	@override String get deleteSuccess => 'Gider silindi';
+	@override String get updateSuccess => 'Gider güncellendi';
+	@override String get loadError => 'Giderler yüklenemedi';
+	@override String get emptyTitle => 'Bu dönemde gider yok';
+	@override String get emptySubtitle => 'Sağ üstten yeni gider ekleyebilirsiniz';
+}
+
+// Path: features.notifications
+class _StringsFeaturesNotificationsTr implements _StringsFeaturesNotificationsEn {
+	_StringsFeaturesNotificationsTr._(this._root);
+
+	@override final _StringsTr _root; // ignore: unused_field
+
+	// Translations
+	@override String get markAllRead => 'Tümünü oku';
+	@override String get emptyTitle => 'Bildirim yok';
+	@override String get emptySubtitle => 'Yeni bildirimler burada görünecek';
+	@override String get loadError => 'Bildirimler yüklenemedi';
+	@override String get typeDueReminder => 'Aidat hatırlatma';
+	@override String get typeDuePaid => 'Aidat ödendi';
+	@override String get typeTicketCreated => 'Yeni talep';
+	@override String get typeTicketUpdate => 'Talep güncellendi';
+	@override String get typeAnnouncement => 'Duyuru';
+	@override String get typeSystem => 'Sistem';
+	@override String get typeOther => 'Bildirim';
+	@override String get sendTitle => 'Sakinlere Duyuru';
+	@override String get fieldTitle => 'Başlık';
+	@override String get fieldBody => 'Mesaj';
+	@override String get sendButton => 'Gönder';
+	@override String get sendSuccess => 'Duyuru gönderildi';
+	@override String get sendFailed => 'Duyuru gönderilemedi';
+	@override String get fieldRequired => 'Zorunlu alan';
+	@override String get titleTooLong => 'Başlık en fazla 120 karakter olabilir';
+	@override String get bodyTooLong => 'Mesaj en fazla 2000 karakter olabilir';
+	@override String get noBuilding => 'Önce bir bina ekleyin';
+}
+
+// Path: features.faz2
+class _StringsFeaturesFaz2Tr implements _StringsFeaturesFaz2En {
+	_StringsFeaturesFaz2Tr._(this._root);
+
+	@override final _StringsTr _root; // ignore: unused_field
+
+	// Translations
+	@override String get sectionTitle => 'Faz 2';
+	@override String get tickets => 'Talepler';
+	@override String get expenses => 'Giderler';
+	@override String get announcement => 'Duyuru';
+}
+
 /// Flat map(s) containing all translations.
 /// Only for edge cases! For simple maps, use the map function of this library.
 
@@ -1072,8 +1336,8 @@ extension on Translations {
 			case 'common.user': return 'User';
 			case 'common.welcome': return 'Welcome';
 			case 'common.managedBuildings': return 'Managed Buildings';
-			case 'common.issues': return 'Issues';
-			case 'common.issuesTab': return 'Issues Tab';
+			case 'common.issues': return 'Requests';
+			case 'common.issuesTab': return 'Requests Tab';
 			case 'common.apartment': return 'Apartment';
 			case 'common.addBuilding': return 'Add Building';
 			case 'common.inviteCode': return 'Invite Code';
@@ -1373,6 +1637,98 @@ extension on Translations {
 			case 'features.auth.invalidPhoneNumber': return 'Enter a valid phone number';
 			case 'features.auth.areYouManager': return 'Are you a manager? Register';
 			case 'features.apartments.residentPanel': return 'Resident Panel';
+			case 'features.tickets.myTickets': return 'My requests';
+			case 'features.tickets.newTicket': return 'New request';
+			case 'features.tickets.createTitle': return 'Report issue / request';
+			case 'features.tickets.fieldTitle': return 'Title';
+			case 'features.tickets.fieldTitleHint': return 'e.g. Elevator malfunction';
+			case 'features.tickets.fieldDescription': return 'Description';
+			case 'features.tickets.fieldDescriptionHint': return 'Briefly describe the issue';
+			case 'features.tickets.fieldCategory': return 'Category';
+			case 'features.tickets.categoryComplaint': return 'Complaint';
+			case 'features.tickets.categoryRequest': return 'Request';
+			case 'features.tickets.categoryMalfunction': return 'Malfunction';
+			case 'features.tickets.categoryOther': return 'Other';
+			case 'features.tickets.submit': return 'Submit';
+			case 'features.tickets.createSuccess': return 'Your request has been submitted';
+			case 'features.tickets.emptyTitle': return 'No requests yet';
+			case 'features.tickets.emptySubtitle': return 'Report an issue or request from here';
+			case 'features.tickets.titleTooShort': return 'Title must be at least 3 characters';
+			case 'features.tickets.descriptionTooShort': return 'Description must be at least 10 characters';
+			case 'features.tickets.statusOpen': return 'Open';
+			case 'features.tickets.statusInProgress': return 'In progress';
+			case 'features.tickets.statusResolved': return 'Resolved';
+			case 'features.tickets.statusClosed': return 'Closed';
+			case 'features.tickets.detailTitle': return 'Request details';
+			case 'features.tickets.managerTitle': return 'Building requests';
+			case 'features.tickets.statusLabel': return 'Status';
+			case 'features.tickets.updatesTitle': return 'Updates';
+			case 'features.tickets.changeStatus': return 'Change status';
+			case 'features.tickets.managerNote': return 'Manager note';
+			case 'features.tickets.addNote': return 'Add note';
+			case 'features.tickets.statusUpdated': return 'Status updated';
+			case 'features.tickets.noteAdded': return 'Note added';
+			case 'features.tickets.loadError': return 'Could not load requests';
+			case 'features.tickets.noteDisabledClosed': return 'Cannot add notes to a closed request';
+			case 'features.tickets.statusClosedHint': return 'This request is closed; status cannot be changed.';
+			case 'features.tickets.apartmentRequired': return 'Apartment not linked. Please sign in again.';
+			case 'features.expenses.title': return 'Expenses';
+			case 'features.expenses.createTitle': return 'Add expense';
+			case 'features.expenses.fieldTitle': return 'Title';
+			case 'features.expenses.fieldAmount': return 'Amount';
+			case 'features.expenses.fieldCategory': return 'Category';
+			case 'features.expenses.fieldNote': return 'Note (optional)';
+			case 'features.expenses.submit': return 'Save';
+			case 'features.expenses.required': return 'Required';
+			case 'features.expenses.amountInvalid': return 'Enter a valid amount';
+			case 'features.expenses.total': return 'Total';
+			case 'features.expenses.createSuccess': return 'Expense saved';
+			case 'features.expenses.categoryCleaning': return 'Cleaning';
+			case 'features.expenses.categoryElevator': return 'Elevator';
+			case 'features.expenses.categoryElectricity': return 'Electricity';
+			case 'features.expenses.categoryWater': return 'Water';
+			case 'features.expenses.categoryInsurance': return 'Insurance';
+			case 'features.expenses.categoryRepair': return 'Repair';
+			case 'features.expenses.categoryGarden': return 'Garden';
+			case 'features.expenses.categoryOther': return 'Other';
+			case 'features.expenses.fieldDate': return 'Date';
+			case 'features.expenses.fieldMonth': return 'Month';
+			case 'features.expenses.fieldYear': return 'Year';
+			case 'features.expenses.editTitle': return 'Edit expense';
+			case 'features.expenses.editAction': return 'Edit';
+			case 'features.expenses.deleteTitle': return 'Delete expense';
+			case 'features.expenses.deleteAction': return 'Delete';
+			case 'features.expenses.deleteConfirm': return 'Are you sure you want to delete this expense?';
+			case 'features.expenses.deleteSuccess': return 'Expense deleted';
+			case 'features.expenses.updateSuccess': return 'Expense updated';
+			case 'features.expenses.loadError': return 'Could not load expenses';
+			case 'features.expenses.emptyTitle': return 'No expenses this period';
+			case 'features.expenses.emptySubtitle': return 'Add a new expense from the top-right button';
+			case 'features.notifications.markAllRead': return 'Mark all read';
+			case 'features.notifications.emptyTitle': return 'No notifications';
+			case 'features.notifications.emptySubtitle': return 'New notifications will appear here';
+			case 'features.notifications.loadError': return 'Could not load notifications';
+			case 'features.notifications.typeDueReminder': return 'Due reminder';
+			case 'features.notifications.typeDuePaid': return 'Due paid';
+			case 'features.notifications.typeTicketCreated': return 'New request';
+			case 'features.notifications.typeTicketUpdate': return 'Request updated';
+			case 'features.notifications.typeAnnouncement': return 'Announcement';
+			case 'features.notifications.typeSystem': return 'System';
+			case 'features.notifications.typeOther': return 'Notification';
+			case 'features.notifications.sendTitle': return 'Announcement to residents';
+			case 'features.notifications.fieldTitle': return 'Title';
+			case 'features.notifications.fieldBody': return 'Message';
+			case 'features.notifications.sendButton': return 'Send';
+			case 'features.notifications.sendSuccess': return 'Announcement sent';
+			case 'features.notifications.sendFailed': return 'Could not send announcement';
+			case 'features.notifications.fieldRequired': return 'Required field';
+			case 'features.notifications.titleTooLong': return 'Title must be at most 120 characters';
+			case 'features.notifications.bodyTooLong': return 'Message must be at most 2000 characters';
+			case 'features.notifications.noBuilding': return 'Add a building first';
+			case 'features.faz2.sectionTitle': return 'Phase 2';
+			case 'features.faz2.tickets': return 'Requests';
+			case 'features.faz2.expenses': return 'Expenses';
+			case 'features.faz2.announcement': return 'Announce';
 			case 'db_context.user_entry': return 'Record: {value}';
 			case 'db_context.building_name': return 'Building: {value}';
 			case 'db_context.apartment_label': return 'Apartment: {value}';
@@ -1432,8 +1788,8 @@ extension on _StringsTr {
 			case 'common.user': return 'Kullanıcı';
 			case 'common.welcome': return 'Hoş Geldiniz';
 			case 'common.managedBuildings': return 'Yönetilen Binalar';
-			case 'common.issues': return 'Arızalar';
-			case 'common.issuesTab': return 'Arızalar Sekmesi';
+			case 'common.issues': return 'Talepler';
+			case 'common.issuesTab': return 'Talepler Sekmesi';
 			case 'common.apartment': return 'Daire';
 			case 'common.addBuilding': return 'Bina Ekle';
 			case 'common.inviteCode': return 'Davet Kodu';
@@ -1733,6 +2089,98 @@ extension on _StringsTr {
 			case 'features.auth.invalidPhoneNumber': return 'Geçerli bir telefon numarası giriniz';
 			case 'features.auth.areYouManager': return 'Yönetici misiniz? Kaydolun';
 			case 'features.apartments.residentPanel': return 'Sakin Paneli';
+			case 'features.tickets.myTickets': return 'Taleplerim';
+			case 'features.tickets.newTicket': return 'Yeni Talep';
+			case 'features.tickets.createTitle': return 'Arıza / Talep Bildir';
+			case 'features.tickets.fieldTitle': return 'Başlık';
+			case 'features.tickets.fieldTitleHint': return 'Örn: Asansör arızası';
+			case 'features.tickets.fieldDescription': return 'Açıklama';
+			case 'features.tickets.fieldDescriptionHint': return 'Sorunu kısaca anlatın';
+			case 'features.tickets.fieldCategory': return 'Kategori';
+			case 'features.tickets.categoryComplaint': return 'Şikayet';
+			case 'features.tickets.categoryRequest': return 'Talep';
+			case 'features.tickets.categoryMalfunction': return 'Arıza';
+			case 'features.tickets.categoryOther': return 'Diğer';
+			case 'features.tickets.submit': return 'Gönder';
+			case 'features.tickets.createSuccess': return 'Talebiniz alındı';
+			case 'features.tickets.emptyTitle': return 'Henüz talep yok';
+			case 'features.tickets.emptySubtitle': return 'Arıza veya talebinizi buradan bildirebilirsiniz';
+			case 'features.tickets.titleTooShort': return 'Başlık en az 3 karakter olmalı';
+			case 'features.tickets.descriptionTooShort': return 'Açıklama en az 10 karakter olmalı';
+			case 'features.tickets.statusOpen': return 'Açık';
+			case 'features.tickets.statusInProgress': return 'İşlemde';
+			case 'features.tickets.statusResolved': return 'Çözüldü';
+			case 'features.tickets.statusClosed': return 'Kapalı';
+			case 'features.tickets.detailTitle': return 'Talep Detayı';
+			case 'features.tickets.managerTitle': return 'Bina Talepleri';
+			case 'features.tickets.statusLabel': return 'Durum';
+			case 'features.tickets.updatesTitle': return 'Güncellemeler';
+			case 'features.tickets.changeStatus': return 'Durum değiştir';
+			case 'features.tickets.managerNote': return 'Yönetici notu';
+			case 'features.tickets.addNote': return 'Not ekle';
+			case 'features.tickets.statusUpdated': return 'Durum güncellendi';
+			case 'features.tickets.noteAdded': return 'Not eklendi';
+			case 'features.tickets.loadError': return 'Talepler yüklenemedi';
+			case 'features.tickets.noteDisabledClosed': return 'Kapalı talebe not eklenemez';
+			case 'features.tickets.statusClosedHint': return 'Bu talep kapatıldı; durum değiştirilemez.';
+			case 'features.tickets.apartmentRequired': return 'Daire bilgisi bulunamadı. Lütfen tekrar giriş yapın.';
+			case 'features.expenses.title': return 'Giderler';
+			case 'features.expenses.createTitle': return 'Gider Ekle';
+			case 'features.expenses.fieldTitle': return 'Başlık';
+			case 'features.expenses.fieldAmount': return 'Tutar (₺)';
+			case 'features.expenses.fieldCategory': return 'Kategori';
+			case 'features.expenses.fieldNote': return 'Not (opsiyonel)';
+			case 'features.expenses.submit': return 'Kaydet';
+			case 'features.expenses.required': return 'Zorunlu alan';
+			case 'features.expenses.amountInvalid': return 'Geçerli tutar girin';
+			case 'features.expenses.total': return 'Toplam';
+			case 'features.expenses.createSuccess': return 'Gider kaydedildi';
+			case 'features.expenses.categoryCleaning': return 'Temizlik';
+			case 'features.expenses.categoryElevator': return 'Asansör';
+			case 'features.expenses.categoryElectricity': return 'Elektrik';
+			case 'features.expenses.categoryWater': return 'Su';
+			case 'features.expenses.categoryInsurance': return 'Sigorta';
+			case 'features.expenses.categoryRepair': return 'Onarım';
+			case 'features.expenses.categoryGarden': return 'Bahçe';
+			case 'features.expenses.categoryOther': return 'Diğer';
+			case 'features.expenses.fieldDate': return 'Tarih';
+			case 'features.expenses.fieldMonth': return 'Ay';
+			case 'features.expenses.fieldYear': return 'Yıl';
+			case 'features.expenses.editTitle': return 'Gideri Düzenle';
+			case 'features.expenses.editAction': return 'Düzenle';
+			case 'features.expenses.deleteTitle': return 'Gideri sil';
+			case 'features.expenses.deleteAction': return 'Sil';
+			case 'features.expenses.deleteConfirm': return 'Bu gider kaydını silmek istediğinize emin misiniz?';
+			case 'features.expenses.deleteSuccess': return 'Gider silindi';
+			case 'features.expenses.updateSuccess': return 'Gider güncellendi';
+			case 'features.expenses.loadError': return 'Giderler yüklenemedi';
+			case 'features.expenses.emptyTitle': return 'Bu dönemde gider yok';
+			case 'features.expenses.emptySubtitle': return 'Sağ üstten yeni gider ekleyebilirsiniz';
+			case 'features.notifications.markAllRead': return 'Tümünü oku';
+			case 'features.notifications.emptyTitle': return 'Bildirim yok';
+			case 'features.notifications.emptySubtitle': return 'Yeni bildirimler burada görünecek';
+			case 'features.notifications.loadError': return 'Bildirimler yüklenemedi';
+			case 'features.notifications.typeDueReminder': return 'Aidat hatırlatma';
+			case 'features.notifications.typeDuePaid': return 'Aidat ödendi';
+			case 'features.notifications.typeTicketCreated': return 'Yeni talep';
+			case 'features.notifications.typeTicketUpdate': return 'Talep güncellendi';
+			case 'features.notifications.typeAnnouncement': return 'Duyuru';
+			case 'features.notifications.typeSystem': return 'Sistem';
+			case 'features.notifications.typeOther': return 'Bildirim';
+			case 'features.notifications.sendTitle': return 'Sakinlere Duyuru';
+			case 'features.notifications.fieldTitle': return 'Başlık';
+			case 'features.notifications.fieldBody': return 'Mesaj';
+			case 'features.notifications.sendButton': return 'Gönder';
+			case 'features.notifications.sendSuccess': return 'Duyuru gönderildi';
+			case 'features.notifications.sendFailed': return 'Duyuru gönderilemedi';
+			case 'features.notifications.fieldRequired': return 'Zorunlu alan';
+			case 'features.notifications.titleTooLong': return 'Başlık en fazla 120 karakter olabilir';
+			case 'features.notifications.bodyTooLong': return 'Mesaj en fazla 2000 karakter olabilir';
+			case 'features.notifications.noBuilding': return 'Önce bir bina ekleyin';
+			case 'features.faz2.sectionTitle': return 'Faz 2';
+			case 'features.faz2.tickets': return 'Talepler';
+			case 'features.faz2.expenses': return 'Giderler';
+			case 'features.faz2.announcement': return 'Duyuru';
 			case 'db_context.user_entry': return 'Kayıt: {value}';
 			case 'db_context.building_name': return 'Bina: {value}';
 			case 'db_context.apartment_label': return 'Daire: {value}';

@@ -2,7 +2,8 @@
 
 > **Bu dosyanın amacı:** Backend’de hazır olan gider, talep ve bildirim + FCM özelliklerini Flutter’a bağlamak.  
 > **Hedef kitle:** Mobil geliştirici ve **yapay zeka asistanı** (bu dosya prompt olarak verilebilir).  
-> **Backend durumu (2026-05-19):** Faz 2A+ API ve push tetikleyicileri tamam; `backend/test.py` → 120 OK.  
+> **Backend durumu:** Faz 2A+ API ve push tetikleyicileri tamam; `backend/test.py` → 120 OK.  
+> **Flutter durumu (2026-05-20):** B0–B6 kod tamam; E2E checklist ve UI polish kaldı.  
 > **Ön koşul:** Faz 1 mobil (auth, bina, aidat, profil) çalışır durumda.
 
 ---
@@ -101,40 +102,31 @@ test -f mobile/lib/firebase_options.dart && echo "firebase_options: VAR" || echo
 test -f mobile/android/app/google-services.json && echo "google-services: VAR" || echo "YOK"
 ```
 
-**Doldurulacak tablo (AI çıktısı — örnek şablon, değerleri sen doldur):**
+**B-ANALYZE tablosu (2026-05-20 — dolduruldu):** Detay: [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md)
 
-| Kontrol | Backend hazır? | Mobil dosya/UI var mı? | Gap / not |
-|---------|----------------|-------------------------|-----------|
-| FCM init + token upload | ✅ | ? | |
-| Bildirim listesi + okundu | ✅ | ? | |
-| `TICKET_CREATED` deep link (yönetici) | ✅ | ? | |
-| `TICKET_UPDATE` deep link (sakin) | ✅ | ? | |
-| `DUE_PAID` / `DUE_REMINDER` gösterim | ✅ | ? | |
-| Sakin talep sekmesi (placeholder değil) | ✅ | ? | |
-| Yönetici talep listesi/detay | ✅ | ? | |
-| Yönetici gider CRUD + özet | ✅ | ? | |
-| Yönetici duyuru formu | ✅ | ? | |
-| `ApiConstants` eksik sabitler | — | ? | aşağıdaki listeyle diff |
+| Kontrol | Backend | Mobil | Gap / not |
+|---------|---------|-------|-----------|
+| FCM init + token upload | ✅ | ✅ | Cihaz E2E 🔶 |
+| Bildirim listesi + okundu | ✅ | ✅ | |
+| `TICKET_CREATED` deep link (yönetici) | ✅ | ✅ | |
+| `TICKET_UPDATE` deep link (sakin) | ✅ | ✅ | |
+| `DUE_PAID` / `DUE_REMINDER` gösterim | ✅ | ✅ route | Özel aidat ekranı opsiyonel |
+| Sakin talep sekmesi | ✅ | ✅ `ResidentTicketsTab` | |
+| Yönetici talep listesi/detay | ✅ | ✅ | |
+| Yönetici gider CRUD + özet | ✅ | ✅ | |
+| Yönetici duyuru formu | ✅ | ✅ `AnnouncementFormSheet` | |
+| `ApiConstants` Faz 2 sabitleri | — | ✅ | Hepsi tanımlı |
 
-## B-ANALYZE.3 — `ApiConstants` diff
+## B-ANALYZE.3 — `ApiConstants` diff (2026-05-20)
 
-`mobile/lib/core/constants/api_constants.dart` dosyasını backend path’leriyle karşılaştır. **Eksik olması muhtemel sabitler** (varlığını B-ANALYZE’de doğrula):
+`mobile/lib/core/constants/api_constants.dart` — Faz 2 sabitleri **mevcut ve kullanımda:**
 
-```dart
-static const notificationsReadAll = '$apiVersion/notifications/read-all';
-static String apartmentTickets(String apartmentId) =>
-    '$apiVersion/apartments/$apartmentId/tickets';
-static String ticketStatus(String ticketId) =>
-    '$apiVersion/tickets/$ticketId/status';
-static String buildingExpensesSummary(String buildingId) =>
-    '$apiVersion/buildings/$buildingId/expenses/summary';
-static String buildingAnnouncements(String buildingId) =>
-    '$apiVersion/buildings/$buildingId/announcements';
-static String buildingDuesRemind(String buildingId) =>
-    '$apiVersion/buildings/$buildingId/dues/remind';
-```
+- `notificationsReadAll`, `notificationRead`, `fcmToken`
+- `apartmentTickets`, `myTickets`, `ticket`, `ticketUpdates`, `ticketStatus`, `buildingTickets`
+- `buildingExpenses`, `buildingExpensesSummary`, `expense`
+- `buildingAnnouncements`, `buildingDuesRemind`
 
-`expenseProof` backend Faz 2A’da **yok** — kullanılmıyorsa kaldır veya Faz 2B’ye bırak.
+`expenseProof` backend Faz 2A’da **yok** — repoda kullanılmamalı (kaldırıldı).
 
 ## B-ANALYZE.4 — Tasarım sistemi ve UX boşlukları (canlı kod)
 
@@ -289,7 +281,7 @@ mobile/lib/features/notifications/
 
 ## UI yerleşimi
 
-- [ ] Sakin: `resident_dashboard` — Arızalar sekmesi → gerçek `ResidentTicketsTab` (B-ANALYZE’de placeholder kaldı mı kontrol et)
+- [x] Sakin: `resident_dashboard` — `ResidentTicketsTab` (placeholder kaldırıldı)
 - [ ] FAB / sheet: yeni talep formu
 - [ ] `ticket_detail_screen`: mesaj zaman çizelgesi, durum chip
 - [ ] Yönetici: `building_residents` veya bina kartından “Talepler”
@@ -413,16 +405,16 @@ API base (dev): http://127.0.0.1:4200/api/v1
 
 # Definition of Done (Faz 2A Flutter)
 
-- [ ] B-ANALYZE gap raporu tamamlandı
-- [ ] B0–B1: FCM token gerçek cihazda
-- [ ] B2: Bildirim listesi + deep link
-- [ ] B3: Talep sakin + yönetici uçtan uca
-- [ ] B4: Gider CRUD + özet
-- [ ] B5: Duyuru + dashboard entegrasyonu + i18n
-- [ ] B6: Manuel E2E checklist işaretli
-- [ ] `ApiConstants` backend ile birebir
-- [ ] Ham enum kullanıcıya gösterilmiyor (Slang)
+- [x] B-ANALYZE gap raporu → [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md) (2026-05-20)
+- [x] B0–B1: FCM kod (`initFirebase`, token upload, `FcmScope`)
+- [x] B2: Bildirim listesi + deep link
+- [x] B3: Talep sakin + yönetici
+- [x] B4: Gider CRUD + özet
+- [x] B5: Duyuru sheet + dashboard + `main_dev` mock
+- [ ] B6: Manuel E2E checklist cihazda işaretli → [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)
+- [x] `ApiConstants` backend ile birebir
+- [x] Ham enum kullanıcıya gösterilmiyor (Slang)
 
 ---
 
-*Son güncelleme: 2026-05-19 — Backend Faz 2A+ push (PLAN_BACKEND_PUSH) tamamlandıktan sonra.*
+*Son güncelleme: 2026-05-20 — Flutter B0–B6 kod tamam; E2E doğrulama ve UI polish kaldı.*

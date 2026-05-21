@@ -9,6 +9,7 @@ import '../../../../core/theme/app_sizes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../l10n/strings.g.dart';
 import '../../../../shared/providers/navigation_provider.dart';
+import '../../../../core/notifications/fcm_sync.dart';
 import '../../presentation/providers/auth_provider.dart';
 import '../../domain/entities/user_entity.dart' show UserRole;
 
@@ -185,6 +186,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void _navigateBasedOnAuth() {
     final authState = ref.read(authStateProvider);
     if (authState.isAuthenticated && authState.user != null) {
+      syncFcmAfterAuth(ref);
       if (authState.user!.role == UserRole.manager) {
         context.go('/manager-dashboard');
       } else {

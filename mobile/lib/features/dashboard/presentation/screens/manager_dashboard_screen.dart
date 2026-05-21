@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/platform/system_navigator_bridge.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -19,6 +20,7 @@ import '../../../buildings/presentation/widgets/edit_building_bottom_sheet.dart'
 import '../../../dues/domain/entities/due_entity.dart';
 import '../../../dues/presentation/providers/dues_provider.dart';
 import '../../../dues/presentation/screens/manager_dues_tab.dart';
+import '../../../notifications/presentation/widgets/announcement_form_sheet.dart';
 
 class ManagerDashboardScreen extends ConsumerStatefulWidget {
   const ManagerDashboardScreen({super.key});
@@ -114,7 +116,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
   Widget _buildHomeTab(AsyncValue<List<BuildingEntity>> buildingsAsync) {
     final authState = ref.watch(authStateProvider);
     final userName = authState.user?.name ?? context.t.common.user;
-    final buildings = buildingsAsync.value ?? const <BuildingEntity>[];
+    final buildings = buildingsAsync.valueOrNull ?? const <BuildingEntity>[];
     // Tüm binaların dues'unu paralel çeken provider — collectionRate ve
     // overdueCount'u backend `collectedDues` döndürmediği için buradan
     // hesaplıyoruz (DuesNotifier sadece tek seçili binayı tutuyor).
@@ -144,6 +146,20 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
               totalApartments: totalApartments,
               collectionRate: collectionRate,
               overdueCount: overdueCount,
+            ),
+            const SizedBox(height: AppSizes.spacingL),
+            Text(
+              context.t.features.faz2.sectionTitle,
+              style: AppTypography.h3.copyWith(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: AppSizes.spacingM),
+            _Faz2QuickActions(
+              onTickets: () => context.push('/manager/tickets'),
+              onExpenses: () => context.push('/manager/expenses'),
+              onAnnouncement: () => AnnouncementFormSheet.show(context),
             ),
             const SizedBox(height: AppSizes.spacingL),
             Row(
@@ -1017,6 +1033,93 @@ class _MetricItem extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _Faz2QuickActions extends StatelessWidget {
+  final VoidCallback onTickets;
+  final VoidCallback onExpenses;
+  final VoidCallback onAnnouncement;
+
+  const _Faz2QuickActions({
+    required this.onTickets,
+    required this.onExpenses,
+    required this.onAnnouncement,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final t = context.t.features.faz2;
+    return Row(
+      children: [
+        Expanded(
+          child: _Faz2Tile(
+            icon: Icons.support_agent_outlined,
+            label: t.tickets,
+            onTap: onTickets,
+          ),
+        ),
+        const SizedBox(width: AppSizes.spacingS),
+        Expanded(
+          child: _Faz2Tile(
+            icon: Icons.receipt_long_outlined,
+            label: t.expenses,
+            onTap: onExpenses,
+          ),
+        ),
+        const SizedBox(width: AppSizes.spacingS),
+        Expanded(
+          child: _Faz2Tile(
+            icon: Icons.campaign_outlined,
+            label: t.announcement,
+            onTap: onAnnouncement,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _Faz2Tile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _Faz2Tile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surface,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            vertical: AppSizes.spacingM,
+            horizontal: AppSizes.spacingS,
+          ),
+          child: Column(
+            children: [
+              Icon(icon, color: AppColors.primary),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: AppTypography.caption.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
