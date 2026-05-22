@@ -431,6 +431,8 @@
     },
     "notifications": {
       "markAllRead": "Mark all read",
+      "viewRelated": "Open related item",
+      "unreadBadge": "New",
       "emptyTitle": "No notifications",
       "emptySubtitle": "New notifications will appear here",
       "loadError": "Could not load notifications",

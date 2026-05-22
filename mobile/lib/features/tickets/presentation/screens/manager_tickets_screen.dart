@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_sizes.dart';
 import '../../../../l10n/strings.g.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/notification_icon_button.dart';
+import '../providers/manager_open_tickets_count_provider.dart';
 import '../../../buildings/data/buildings_store.dart';
 import '../providers/tickets_provider.dart';
 import '../widgets/ticket_list_card.dart';
@@ -29,7 +31,10 @@ class _ManagerTicketsScreenState extends ConsumerState<ManagerTicketsScreen> {
   Future<void> _openTicket(String ticketId) async {
     await context.push('/tickets/$ticketId');
     final id = _buildingId;
-    if (id != null && mounted) await _load(id);
+    if (id != null && mounted) {
+      await _load(id);
+      ref.invalidate(managerOpenTicketsCountProvider);
+    }
   }
 
   @override
@@ -50,6 +55,7 @@ class _ManagerTicketsScreenState extends ConsumerState<ManagerTicketsScreen> {
       appBar: AppBar(
         title: Text(t.managerTitle),
         centerTitle: true,
+        actions: const [NotificationIconButton()],
       ),
       body: Column(
         children: [

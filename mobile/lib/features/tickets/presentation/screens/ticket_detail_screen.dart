@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../../../../core/network/api_exception.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -10,6 +11,8 @@ import '../../../../shared/widgets/toast_overlay.dart';
 import '../../../auth/domain/entities/user_entity.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/ticket_entity.dart';
+import '../../domain/entities/ticket_update_entity.dart';
+import '../providers/manager_open_tickets_count_provider.dart';
 import '../providers/tickets_provider.dart';
 import '../utils/ticket_labels.dart';
 import '../utils/ticket_status_rules.dart';
@@ -46,6 +49,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
     final t = context.t.features.tickets;
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(t.detailTitle),
         centerTitle: true,
@@ -73,50 +77,33 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
         ),
         data: (ticket) => RefreshIndicator(
           onRefresh: _reload,
+          color: AppColors.primary,
           child: ListView(
             physics: const AlwaysScrollableScrollPhysics(),
             padding: AppSizes.screenBodyScrollPadding,
             children: [
-              Text(
-                ticket.title,
-                style: AppTypography.h3.copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSizes.spacingS),
-              Text(
-                [
-                  if (ticket.apartmentNumber != null &&
-                      ticket.apartmentNumber!.isNotEmpty)
-                    ticket.apartmentNumber!,
-                  ticket.category.label(context),
-                ].join(' · '),
-                style: AppTypography.caption
-                    .copyWith(color: AppColors.textSecondary),
-              ),
+              _TicketHeaderCard(ticket: ticket),
               const SizedBox(height: AppSizes.spacingM),
-              Text(
-                ticket.description,
-                style: AppTypography.body1
-                    .copyWith(color: AppColors.textPrimary),
-              ),
-              const SizedBox(height: AppSizes.spacingM),
-              _StatusBadge(
-                label: '${t.statusLabel}: ${ticket.status.label(context)}',
-                status: ticket.status,
+              _SurfaceSection(
+                child: Text(
+                  ticket.description,
+                  style: AppTypography.body1.copyWith(
+                    color: AppColors.textPrimary,
+                    height: 1.45,
+                  ),
+                ),
               ),
               if (ticket.updates.isNotEmpty) ...[
                 const SizedBox(height: AppSizes.spacingL),
-                Text(t.updatesTitle, style: AppTypography.h4),
-                const SizedBox(height: AppSizes.spacingS),
-                ...ticket.updates.map(
-                  (u) => Padding(
-                    padding: const EdgeInsets.only(bottom: AppSizes.spacingS),
-                    child: Text(
-                      '• ${u.message}',
-                      style: AppTypography.body2
-                          .copyWith(color: AppColors.textSecondary),
-                    ),
+                Text(
+                  t.updatesTitle,
+                  style: AppTypography.h4.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
                   ),
                 ),
+                const SizedBox(height: AppSizes.spacingM),
+                _UpdatesTimeline(updates: ticket.updates),
               ],
               if (isManager) ...[
                 const SizedBox(height: AppSizes.spacingL),
@@ -143,6 +130,7 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
             status: status,
           );
       ref.invalidate(ticketDetailProvider(ticketId));
+      ref.invalidate(managerOpenTicketsCountProvider);
       if (mounted) {
         ref.read(toastProvider.notifier).show(
               context.t.features.tickets.statusUpdated,
@@ -199,37 +187,214 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String label;
-  final TicketStatus status;
+class _TicketHeaderCard extends StatelessWidget {
+  final TicketEntity ticket;
 
-  const _StatusBadge({required this.label, required this.status});
+  const _TicketHeaderCard({required this.ticket});
 
   @override
   Widget build(BuildContext context) {
-    Color color;
+    final statusColor = _statusColor(ticket.status);
+    final meta = [
+      if (ticket.apartmentNumber != null &&
+          ticket.apartmentNumber!.isNotEmpty)
+        ticket.apartmentNumber!,
+      ticket.category.label(context),
+    ].join(' · ');
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingM),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            statusColor.withValues(alpha: 0.14),
+            AppColors.surface,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppSizes.cardRadius),
+        border: Border.all(color: statusColor.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  ticket.title,
+                  style: AppTypography.h3.copyWith(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  ticket.status.label(context),
+                  style: AppTypography.caption.copyWith(
+                    color: statusColor,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (meta.isNotEmpty) ...[
+            const SizedBox(height: AppSizes.spacingS),
+            Text(
+              meta,
+              style: AppTypography.body2.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _statusColor(TicketStatus status) {
     switch (status) {
       case TicketStatus.open:
-        color = AppColors.warning;
+        return AppColors.warning;
       case TicketStatus.inProgress:
-        color = AppColors.primary;
+        return AppColors.primary;
       case TicketStatus.resolved:
-        color = AppColors.success;
+        return AppColors.success;
       case TicketStatus.closed:
-        color = AppColors.textSecondary;
+        return AppColors.textSecondary;
     }
+  }
+}
+
+class _SurfaceSection extends StatelessWidget {
+  final Widget child;
+
+  const _SurfaceSection({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      width: double.infinity,
+      padding: const EdgeInsets.all(AppSizes.spacingM),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(8),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.cardRadius),
+        border: Border.all(color: AppColors.border),
       ),
-      child: Text(
-        label,
-        style: AppTypography.body2.copyWith(
-          color: color,
-          fontWeight: FontWeight.w600,
-        ),
+      child: child,
+    );
+  }
+}
+
+class _UpdatesTimeline extends StatelessWidget {
+  final List<TicketUpdateEntity> updates;
+
+  const _UpdatesTimeline({required this.updates});
+
+  @override
+  Widget build(BuildContext context) {
+    final locale = Localizations.localeOf(context).toString();
+
+    return Column(
+      children: [
+        for (var i = 0; i < updates.length; i++)
+          _TimelineEntry(
+            update: updates[i],
+            locale: locale,
+            isLast: i == updates.length - 1,
+          ),
+      ],
+    );
+  }
+}
+
+class _TimelineEntry extends StatelessWidget {
+  final TicketUpdateEntity update;
+  final String locale;
+  final bool isLast;
+
+  const _TimelineEntry({
+    required this.update,
+    required this.locale,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dateStr =
+        DateFormat('d MMM yyyy, HH:mm', locale).format(update.createdAt);
+
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(
+                width: 12,
+                height: 12,
+                decoration: const BoxDecoration(
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              if (!isLast)
+                Expanded(
+                  child: Container(
+                    width: 2,
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    color: AppColors.border,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(width: AppSizes.spacingM),
+          Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                bottom: isLast ? 0 : AppSizes.spacingM,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(AppSizes.spacingM),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      update.message,
+                      style: AppTypography.body1.copyWith(
+                        color: AppColors.textPrimary,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: AppSizes.spacingXS),
+                    Text(
+                      dateStr,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.textDisabled,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -256,54 +421,95 @@ class _ManagerActions extends StatelessWidget {
     final nextStatuses = allowedNextStatuses(ticket.status);
     final noteEnabled = canAddManagerNote(ticket.status) && !submitting;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (canChangeStatus(ticket.status) && nextStatuses.isNotEmpty) ...[
-          Text(t.changeStatus, style: AppTypography.h4),
-          const SizedBox(height: AppSizes.spacingS),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: nextStatuses.map((s) {
-              return FilledButton.tonal(
-                onPressed: submitting ? null : () => onPatchStatus(ticket.id, s),
-                child: Text(s.label(context)),
-              );
-            }).toList(),
-          ),
-        ],
-        if (ticket.status == TicketStatus.closed) ...[
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.spacingM),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppSizes.cardRadius),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (canChangeStatus(ticket.status) && nextStatuses.isNotEmpty) ...[
+            Text(
+              t.changeStatus,
+              style: AppTypography.h4.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: AppSizes.spacingM),
+            Wrap(
+              spacing: AppSizes.spacingS,
+              runSpacing: AppSizes.spacingS,
+              children: nextStatuses.map((s) {
+                return ActionChip(
+                  label: Text(s.label(context)),
+                  onPressed: submitting
+                      ? null
+                      : () => onPatchStatus(ticket.id, s),
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.08),
+                  side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+                  labelStyle: AppTypography.body2.copyWith(
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w700,
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+          if (ticket.status == TicketStatus.closed) ...[
+            const SizedBox(height: AppSizes.spacingS),
+            Text(
+              t.statusClosedHint,
+              style: AppTypography.caption.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSizes.spacingL),
           Text(
-            t.statusClosedHint,
-            style: AppTypography.caption.copyWith(color: AppColors.textSecondary),
+            t.managerNote,
+            style: AppTypography.h4.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSizes.spacingM),
+          TextField(
+            controller: noteController,
+            maxLines: 4,
+            enabled: noteEnabled,
+            decoration: InputDecoration(
+              hintText: noteEnabled ? t.managerNote : t.noteDisabledClosed,
+              filled: true,
+              fillColor: AppColors.background,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSizes.spacingM),
+          SizedBox(
+            height: AppSizes.buttonHeightSecondary,
+            child: FilledButton.icon(
+              onPressed: noteEnabled ? () => onAddNote(ticket.id) : null,
+              icon: submitting
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.note_add_outlined),
+              label: Text(t.addNote),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+            ),
           ),
         ],
-        const SizedBox(height: AppSizes.spacingL),
-        Text(t.managerNote, style: AppTypography.h4),
-        const SizedBox(height: AppSizes.spacingS),
-        TextField(
-          controller: noteController,
-          maxLines: 3,
-          enabled: noteEnabled,
-          decoration: InputDecoration(
-            labelText: t.managerNote,
-            hintText: noteEnabled ? null : t.noteDisabledClosed,
-            border: const OutlineInputBorder(),
-          ),
-        ),
-        const SizedBox(height: AppSizes.spacingM),
-        FilledButton(
-          onPressed: noteEnabled ? () => onAddNote(ticket.id) : null,
-          child: submitting
-              ? const SizedBox(
-                  width: 22,
-                  height: 22,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : Text(t.addNote),
-        ),
-      ],
+      ),
     );
   }
 }

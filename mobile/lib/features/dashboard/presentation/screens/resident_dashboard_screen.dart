@@ -7,6 +7,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../l10n/strings.g.dart';
 import '../../../../shared/providers/navigation_provider.dart';
 import '../../../../shared/widgets/empty_state_widget.dart';
+import '../../../../shared/widgets/notification_icon_button.dart';
 import '../../../../shared/widgets/settings_tab.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../dues/domain/entities/due_entity.dart';
@@ -40,6 +41,10 @@ class _ResidentDashboardScreenState
     _tabController.addListener(() {
       ref.read(residentTabIndexProvider.notifier).state = _tabController.index;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      prefetchNotifications(ref);
+    });
   }
 
   @override
@@ -68,6 +73,7 @@ class _ResidentDashboardScreenState
         appBar: AppBar(
           title: Text(context.t.features.apartments.residentPanel),
           centerTitle: true,
+          actions: const [NotificationIconButton()],
         ),
         body: TabBarView(
           controller: _tabController,

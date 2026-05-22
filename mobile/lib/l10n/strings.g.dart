@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 888 (444 per locale)
+/// Strings: 892 (446 per locale)
 ///
-/// Built on 2026-05-20 at 23:59 UTC
+/// Built on 2026-05-22 at 01:22 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -669,6 +669,8 @@ class _StringsFeaturesNotificationsEn {
 
 	// Translations
 	String get markAllRead => 'Mark all read';
+	String get viewRelated => 'Open related item';
+	String get unreadBadge => 'New';
 	String get emptyTitle => 'No notifications';
 	String get emptySubtitle => 'New notifications will appear here';
 	String get loadError => 'Could not load notifications';
@@ -1249,6 +1251,8 @@ class _StringsFeaturesNotificationsTr implements _StringsFeaturesNotificationsEn
 
 	// Translations
 	@override String get markAllRead => 'Tümünü oku';
+	@override String get viewRelated => 'İlgili kayda git';
+	@override String get unreadBadge => 'Yeni';
 	@override String get emptyTitle => 'Bildirim yok';
 	@override String get emptySubtitle => 'Yeni bildirimler burada görünecek';
 	@override String get loadError => 'Bildirimler yüklenemedi';
@@ -1705,6 +1709,8 @@ extension on Translations {
 			case 'features.expenses.emptyTitle': return 'No expenses this period';
 			case 'features.expenses.emptySubtitle': return 'Add a new expense from the top-right button';
 			case 'features.notifications.markAllRead': return 'Mark all read';
+			case 'features.notifications.viewRelated': return 'Open related item';
+			case 'features.notifications.unreadBadge': return 'New';
 			case 'features.notifications.emptyTitle': return 'No notifications';
 			case 'features.notifications.emptySubtitle': return 'New notifications will appear here';
 			case 'features.notifications.loadError': return 'Could not load notifications';
@@ -2157,6 +2163,8 @@ extension on _StringsTr {
 			case 'features.expenses.emptyTitle': return 'Bu dönemde gider yok';
 			case 'features.expenses.emptySubtitle': return 'Sağ üstten yeni gider ekleyebilirsiniz';
 			case 'features.notifications.markAllRead': return 'Tümünü oku';
+			case 'features.notifications.viewRelated': return 'İlgili kayda git';
+			case 'features.notifications.unreadBadge': return 'Yeni';
 			case 'features.notifications.emptyTitle': return 'Bildirim yok';
 			case 'features.notifications.emptySubtitle': return 'Yeni bildirimler burada görünecek';
 			case 'features.notifications.loadError': return 'Bildirimler yüklenemedi';

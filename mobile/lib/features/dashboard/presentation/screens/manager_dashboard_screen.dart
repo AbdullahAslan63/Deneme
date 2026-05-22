@@ -8,7 +8,10 @@ import '../../../../core/theme/app_sizes.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../l10n/strings.g.dart';
 import '../../../../shared/providers/navigation_provider.dart';
+import '../../../../shared/widgets/count_badge.dart';
+import '../../../../shared/widgets/notification_icon_button.dart';
 import '../../../../shared/widgets/settings_tab.dart';
+import '../../../tickets/presentation/providers/manager_open_tickets_count_provider.dart';
 import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../../buildings/data/buildings_store.dart';
 import '../../../buildings/domain/entities/building_entity.dart';
@@ -46,6 +49,11 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
     _tabController.addListener(() {
       ref.read(managerTabIndexProvider.notifier).state = _tabController.index;
     });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      prefetchNotifications(ref);
+      ref.invalidate(managerOpenTicketsCountProvider);
+    });
   }
 
   @override
@@ -70,6 +78,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
         appBar: AppBar(
           title: Text(context.t.features.buildings.managerPanel),
           centerTitle: true,
+          actions: const [NotificationIconButton()],
         ),
         body: TabBarView(
           controller: _tabController,
@@ -114,6 +123,8 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
   }
 
   Widget _buildHomeTab(AsyncValue<List<BuildingEntity>> buildingsAsync) {
+    final openTicketsAsync = ref.watch(managerOpenTicketsCountProvider);
+    final openTicketCount = openTicketsAsync.value ?? 0;
     final authState = ref.watch(authStateProvider);
     final userName = authState.user?.name ?? context.t.common.user;
     final buildings = buildingsAsync.valueOrNull ?? const <BuildingEntity>[];
@@ -157,6 +168,7 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
             ),
             const SizedBox(height: AppSizes.spacingM),
             _Faz2QuickActions(
+              ticketBadgeCount: openTicketCount,
               onTickets: () => context.push('/manager/tickets'),
               onExpenses: () => context.push('/manager/expenses'),
               onAnnouncement: () => AnnouncementFormSheet.show(context),
@@ -211,6 +223,8 @@ class _ManagerDashboardScreenState extends ConsumerState<ManagerDashboardScreen>
   /// dinlediği için invalidate sonrası otomatik güncellenir.
   Future<void> _refreshHomeTab() async {
     ref.invalidate(allBuildingsDuesProvider);
+    ref.invalidate(managerOpenTicketsCountProvider);
+    prefetchNotifications(ref);
     await ref.read(buildingsStoreProvider.notifier).loadBuildings();
   }
 
@@ -1039,11 +1053,13 @@ class _MetricItem extends StatelessWidget {
 }
 
 class _Faz2QuickActions extends StatelessWidget {
+  final int ticketBadgeCount;
   final VoidCallback onTickets;
   final VoidCallback onExpenses;
   final VoidCallback onAnnouncement;
 
   const _Faz2QuickActions({
+    required this.ticketBadgeCount,
     required this.onTickets,
     required this.onExpenses,
     required this.onAnnouncement,
@@ -1058,6 +1074,8 @@ class _Faz2QuickActions extends StatelessWidget {
           child: _Faz2Tile(
             icon: Icons.support_agent_outlined,
             label: t.tickets,
+            badgeCount: ticketBadgeCount,
+            accentColor: AppColors.primary,
             onTap: onTickets,
           ),
         ),
@@ -1066,6 +1084,7 @@ class _Faz2QuickActions extends StatelessWidget {
           child: _Faz2Tile(
             icon: Icons.receipt_long_outlined,
             label: t.expenses,
+            accentColor: AppColors.success,
             onTap: onExpenses,
           ),
         ),
@@ -1074,6 +1093,7 @@ class _Faz2QuickActions extends StatelessWidget {
           child: _Faz2Tile(
             icon: Icons.campaign_outlined,
             label: t.announcement,
+            accentColor: AppColors.accent,
             onTap: onAnnouncement,
           ),
         ),
@@ -1086,38 +1106,83 @@ class _Faz2Tile extends StatelessWidget {
   final IconData icon;
   final String label;
   final VoidCallback onTap;
+  final int badgeCount;
+  final Color accentColor;
 
   const _Faz2Tile({
     required this.icon,
     required this.label,
     required this.onTap,
+    this.badgeCount = 0,
+    this.accentColor = AppColors.primary,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
       color: AppColors.surface,
-      borderRadius: BorderRadius.circular(12),
+      elevation: 0,
+      shadowColor: Colors.transparent,
+      borderRadius: BorderRadius.circular(AppSizes.cardRadius),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            vertical: AppSizes.spacingM,
-            horizontal: AppSizes.spacingS,
+        borderRadius: BorderRadius.circular(AppSizes.cardRadius),
+        child: Ink(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppSizes.cardRadius),
+            border: Border.all(color: accentColor.withValues(alpha: 0.18)),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                accentColor.withValues(alpha: 0.06),
+                AppColors.surface,
+              ],
+            ),
           ),
-          child: Column(
-            children: [
-              Icon(icon, color: AppColors.primary),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: AppTypography.caption.copyWith(
-                  fontWeight: FontWeight.w600,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              vertical: AppSizes.spacingM,
+              horizontal: AppSizes.spacingS,
+            ),
+            child: Column(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: accentColor, size: 24),
+                    ),
+                    if (badgeCount > 0)
+                      Positioned(
+                        right: -6,
+                        top: -6,
+                        child: CountBadge(
+                          count: badgeCount,
+                          backgroundColor: AppColors.error,
+                        ),
+                      ),
+                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: AppSizes.spacingS),
+                Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.caption.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

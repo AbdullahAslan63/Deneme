@@ -431,6 +431,8 @@
     },
     "notifications": {
       "markAllRead": "Tümünü oku",
+      "viewRelated": "İlgili kayda git",
+      "unreadBadge": "Yeni",
       "emptyTitle": "Bildirim yok",
       "emptySubtitle": "Yeni bildirimler burada görünecek",
       "loadError": "Bildirimler yüklenemedi",
