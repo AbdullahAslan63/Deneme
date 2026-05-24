@@ -90,6 +90,7 @@ class MyApp extends ConsumerWidget {
             child: ToastOverlay(child: child ?? const SizedBox.shrink()),
           );
         },
+        debugShowCheckedModeBanner: false,
       ),
     );
   }

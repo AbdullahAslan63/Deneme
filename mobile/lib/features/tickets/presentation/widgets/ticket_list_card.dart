@@ -10,12 +10,17 @@ class TicketListCard extends StatelessWidget {
   final TicketEntity ticket;
   final VoidCallback? onTap;
   final String? subtitlePrefix;
+  /// Sakin listesi: daire/kategori satırı gizlenir.
+  final bool showSubtitleMeta;
+  final int descriptionMaxLines;
 
   const TicketListCard({
     super.key,
     required this.ticket,
     this.onTap,
     this.subtitlePrefix,
+    this.showSubtitleMeta = true,
+    this.descriptionMaxLines = 2,
   });
 
   @override
@@ -24,11 +29,14 @@ class TicketListCard extends StatelessWidget {
     final date =
         '${ticket.createdAt.day}.${ticket.createdAt.month}.${ticket.createdAt.year}';
     final apt = ticket.apartmentNumber?.trim();
-    final meta = [
-      if (subtitlePrefix != null && subtitlePrefix!.isNotEmpty) subtitlePrefix,
-      if (apt != null && apt.isNotEmpty) apt,
-      ticket.category.label(context),
-    ].join(' · ');
+    final meta = showSubtitleMeta
+        ? [
+            if (subtitlePrefix != null && subtitlePrefix!.isNotEmpty)
+              subtitlePrefix,
+            if (apt != null && apt.isNotEmpty) apt,
+            ticket.category.label(context),
+          ].join(' · ')
+        : '';
 
     return Material(
       color: AppColors.surface,
@@ -116,7 +124,7 @@ class TicketListCard extends StatelessWidget {
                       const SizedBox(height: AppSizes.spacingS),
                       Text(
                         ticket.description,
-                        maxLines: 2,
+                        maxLines: descriptionMaxLines,
                         overflow: TextOverflow.ellipsis,
                         style: AppTypography.body2.copyWith(
                           color: AppColors.textSecondary,

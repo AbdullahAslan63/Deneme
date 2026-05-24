@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/network/api_exception.dart';
@@ -55,10 +57,41 @@ class NotificationsState {
 
 class NotificationsNotifier extends StateNotifier<NotificationsState> {
   final NotificationDataSource _remote;
+  Timer? _badgeSyncDebounce;
 
   NotificationsNotifier(this._remote) : super(const NotificationsState());
 
+  @override
+  void dispose() {
+    _badgeSyncDebounce?.cancel();
+    super.dispose();
+  }
+
   String _err(Object e) => e is ApiException ? e.message : e.toString();
+
+  /// Rozeti API ile senkronize eder (liste ekranını etkilemez).
+  Future<void> syncUnreadBadge() async {
+    try {
+      final result = await _remote.list(limit: 1);
+      state = state.copyWith(unreadCount: result.unreadCount);
+    } catch (_) {
+      // Ağ hatasında mevcut (optimistic) sayı korunur.
+    }
+  }
+
+  /// FCM push geldiğinde: önce anında +1, ardından sunucudan doğrula.
+  void onPushReceived() {
+    state = state.copyWith(unreadCount: state.unreadCount + 1);
+
+    _badgeSyncDebounce?.cancel();
+    _badgeSyncDebounce = Timer(const Duration(milliseconds: 400), () {
+      unawaited(syncUnreadBadge());
+    });
+
+    if (state.items.isNotEmpty) {
+      unawaited(load(refresh: true));
+    }
+  }
 
   Future<void> load({bool refresh = true}) async {
     if (!refresh && !state.canLoadMore) return;

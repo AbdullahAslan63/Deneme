@@ -16,6 +16,7 @@ import '../providers/manager_open_tickets_count_provider.dart';
 import '../providers/tickets_provider.dart';
 import '../utils/ticket_labels.dart';
 import '../utils/ticket_status_rules.dart';
+import '../widgets/ticket_status_stepper.dart';
 
 class TicketDetailScreen extends ConsumerStatefulWidget {
   final String ticketId;
@@ -82,7 +83,11 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: AppSizes.screenBodyScrollPadding,
             children: [
-              _TicketHeaderCard(ticket: ticket),
+              _TicketHeaderCard(
+                ticket: ticket,
+                showSubtitleMeta: isManager,
+                showStatusChip: isManager,
+              ),
               const SizedBox(height: AppSizes.spacingM),
               _SurfaceSection(
                 child: Text(
@@ -104,6 +109,10 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
                 ),
                 const SizedBox(height: AppSizes.spacingM),
                 _UpdatesTimeline(updates: ticket.updates),
+              ],
+              if (!isManager) ...[
+                const SizedBox(height: AppSizes.spacingL),
+                TicketStatusStepper(currentStatus: ticket.status),
               ],
               if (isManager) ...[
                 const SizedBox(height: AppSizes.spacingL),
@@ -189,18 +198,26 @@ class _TicketDetailScreenState extends ConsumerState<TicketDetailScreen> {
 
 class _TicketHeaderCard extends StatelessWidget {
   final TicketEntity ticket;
+  final bool showSubtitleMeta;
+  final bool showStatusChip;
 
-  const _TicketHeaderCard({required this.ticket});
+  const _TicketHeaderCard({
+    required this.ticket,
+    this.showSubtitleMeta = true,
+    this.showStatusChip = true,
+  });
 
   @override
   Widget build(BuildContext context) {
     final statusColor = _statusColor(ticket.status);
-    final meta = [
-      if (ticket.apartmentNumber != null &&
-          ticket.apartmentNumber!.isNotEmpty)
-        ticket.apartmentNumber!,
-      ticket.category.label(context),
-    ].join(' · ');
+    final meta = showSubtitleMeta
+        ? [
+            if (ticket.apartmentNumber != null &&
+                ticket.apartmentNumber!.isNotEmpty)
+              ticket.apartmentNumber!,
+            ticket.category.label(context),
+          ].join(' · ')
+        : '';
 
     return Container(
       padding: const EdgeInsets.all(AppSizes.spacingM),
@@ -230,23 +247,24 @@ class _TicketHeaderCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: statusColor.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  ticket.status.label(context),
-                  style: AppTypography.caption.copyWith(
-                    color: statusColor,
-                    fontWeight: FontWeight.w800,
+              if (showStatusChip)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: statusColor.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    ticket.status.label(context),
+                    style: AppTypography.caption.copyWith(
+                      color: statusColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           if (meta.isNotEmpty) ...[

@@ -19,27 +19,43 @@ class FcmScope extends ConsumerStatefulWidget {
   ConsumerState<FcmScope> createState() => _FcmScopeState();
 }
 
-class _FcmScopeState extends ConsumerState<FcmScope> {
+class _FcmScopeState extends ConsumerState<FcmScope> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _initFcm());
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) return;
+    if (!ref.read(authStateProvider).isAuthenticated) return;
+    ref.read(notificationsNotifierProvider.notifier).syncUnreadBadge();
+  }
+
+  void _onPushMessage() {
+    if (!ref.read(authStateProvider).isAuthenticated) return;
+    ref.read(notificationsNotifierProvider.notifier).onPushReceived();
   }
 
   Future<void> _initFcm() async {
     final fcm = ref.read(fcmServiceProvider);
     await fcm.attachListeners(
       onOpenFromNotification: _navigateFromPayload,
-      onForegroundMessage: (_) {
-        if (ref.read(authStateProvider).isAuthenticated) {
-          ref.read(notificationsNotifierProvider.notifier).load(refresh: true);
-        }
-      },
+      onForegroundMessage: (_) => _onPushMessage(),
     );
 
     final auth = ref.read(authStateProvider);
     if (auth.isAuthenticated) {
       await syncFcmWithService(fcm);
+      await ref.read(notificationsNotifierProvider.notifier).syncUnreadBadge();
     }
   }
 
@@ -61,7 +77,7 @@ class _FcmScopeState extends ConsumerState<FcmScope> {
         if (!wasAuth || previous?.user?.id != next.user?.id) {
           final fcm = ref.read(fcmServiceProvider);
           syncFcmWithService(fcm);
-          ref.read(notificationsNotifierProvider.notifier).load(refresh: true);
+          ref.read(notificationsNotifierProvider.notifier).syncUnreadBadge();
         }
       }
     });

@@ -39,7 +39,7 @@ class NotificationIconButton extends ConsumerWidget {
           onPressed: () => context.push('/notifications'),
           icon: const Icon(
             Icons.notifications_outlined,
-            color: AppColors.textPrimary,
+            color: Colors.white,
             size: 26,
           ),
         ),
@@ -50,5 +50,5 @@ class NotificationIconButton extends ConsumerWidget {
 
 /// Dashboard açılışında okunmamış sayıyı günceller.
 void prefetchNotifications(WidgetRef ref) {
-  ref.read(notificationsNotifierProvider.notifier).load(refresh: true);
+  ref.read(notificationsNotifierProvider.notifier).syncUnreadBadge();
 }

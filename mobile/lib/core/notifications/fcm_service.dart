@@ -40,11 +40,13 @@ class FcmService {
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((message) {
+      onForegroundMessage?.call(message);
       onOpenFromNotification(NotificationPayload.fromFcmData(message.data));
     });
 
     final initial = await _messaging.getInitialMessage();
     if (initial != null) {
+      onForegroundMessage?.call(initial);
       onOpenFromNotification(NotificationPayload.fromFcmData(initial.data));
     }
 

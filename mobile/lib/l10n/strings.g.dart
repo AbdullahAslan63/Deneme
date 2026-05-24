@@ -4,9 +4,9 @@
 /// To regenerate, run: `dart run slang`
 ///
 /// Locales: 2
-/// Strings: 892 (446 per locale)
+/// Strings: 910 (455 per locale)
 ///
-/// Built on 2026-05-22 at 01:22 UTC
+/// Built on 2026-05-24 at 00:36 UTC
 
 // coverage:ignore-file
 // ignore_for_file: type=lint
@@ -605,6 +605,15 @@ class _StringsFeaturesTicketsEn {
 	String get statusInProgress => 'In progress';
 	String get statusResolved => 'Resolved';
 	String get statusClosed => 'Closed';
+	String get statusTrackerTitle => 'REQUEST STATUS';
+	String get statusStepWaiting => 'Waiting';
+	String get statusStepInProgress => 'In progress';
+	String get statusStepResolved => 'Resolved';
+	String get statusStepClosed => 'Closed';
+	String get statusHeadlineOpen => 'Your request is waiting';
+	String get statusHeadlineInProgress => 'Your request is in progress';
+	String get statusHeadlineResolved => 'Your request is resolved';
+	String get statusHeadlineClosed => 'Your request is closed';
 	String get detailTitle => 'Request details';
 	String get managerTitle => 'Building requests';
 	String get statusLabel => 'Status';
@@ -1187,6 +1196,15 @@ class _StringsFeaturesTicketsTr implements _StringsFeaturesTicketsEn {
 	@override String get statusInProgress => 'İşlemde';
 	@override String get statusResolved => 'Çözüldü';
 	@override String get statusClosed => 'Kapalı';
+	@override String get statusTrackerTitle => 'TALEP DURUMU';
+	@override String get statusStepWaiting => 'Bekliyor';
+	@override String get statusStepInProgress => 'İşlemde';
+	@override String get statusStepResolved => 'Çözüldü';
+	@override String get statusStepClosed => 'Kapalı';
+	@override String get statusHeadlineOpen => 'Talebiniz beklemede';
+	@override String get statusHeadlineInProgress => 'Talebiniz işlemde';
+	@override String get statusHeadlineResolved => 'Talebiniz çözüldü';
+	@override String get statusHeadlineClosed => 'Talebiniz kapatıldı';
 	@override String get detailTitle => 'Talep Detayı';
 	@override String get managerTitle => 'Bina Talepleri';
 	@override String get statusLabel => 'Durum';
@@ -1663,6 +1681,15 @@ extension on Translations {
 			case 'features.tickets.statusInProgress': return 'In progress';
 			case 'features.tickets.statusResolved': return 'Resolved';
 			case 'features.tickets.statusClosed': return 'Closed';
+			case 'features.tickets.statusTrackerTitle': return 'REQUEST STATUS';
+			case 'features.tickets.statusStepWaiting': return 'Waiting';
+			case 'features.tickets.statusStepInProgress': return 'In progress';
+			case 'features.tickets.statusStepResolved': return 'Resolved';
+			case 'features.tickets.statusStepClosed': return 'Closed';
+			case 'features.tickets.statusHeadlineOpen': return 'Your request is waiting';
+			case 'features.tickets.statusHeadlineInProgress': return 'Your request is in progress';
+			case 'features.tickets.statusHeadlineResolved': return 'Your request is resolved';
+			case 'features.tickets.statusHeadlineClosed': return 'Your request is closed';
 			case 'features.tickets.detailTitle': return 'Request details';
 			case 'features.tickets.managerTitle': return 'Building requests';
 			case 'features.tickets.statusLabel': return 'Status';
@@ -2117,6 +2144,15 @@ extension on _StringsTr {
 			case 'features.tickets.statusInProgress': return 'İşlemde';
 			case 'features.tickets.statusResolved': return 'Çözüldü';
 			case 'features.tickets.statusClosed': return 'Kapalı';
+			case 'features.tickets.statusTrackerTitle': return 'TALEP DURUMU';
+			case 'features.tickets.statusStepWaiting': return 'Bekliyor';
+			case 'features.tickets.statusStepInProgress': return 'İşlemde';
+			case 'features.tickets.statusStepResolved': return 'Çözüldü';
+			case 'features.tickets.statusStepClosed': return 'Kapalı';
+			case 'features.tickets.statusHeadlineOpen': return 'Talebiniz beklemede';
+			case 'features.tickets.statusHeadlineInProgress': return 'Talebiniz işlemde';
+			case 'features.tickets.statusHeadlineResolved': return 'Talebiniz çözüldü';
+			case 'features.tickets.statusHeadlineClosed': return 'Talebiniz kapatıldı';
 			case 'features.tickets.detailTitle': return 'Talep Detayı';
 			case 'features.tickets.managerTitle': return 'Bina Talepleri';
 			case 'features.tickets.statusLabel': return 'Durum';

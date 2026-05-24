@@ -77,6 +77,8 @@ class _ResidentTicketsTabState extends ConsumerState<ResidentTicketsTab> {
                         padding: const EdgeInsets.only(bottom: AppSizes.spacingM),
                         child: TicketListCard(
                           ticket: ticket,
+                          showSubtitleMeta: false,
+                          descriptionMaxLines: 1,
                           onTap: () async {
                             await context.push('/tickets/${ticket.id}');
                             if (mounted) {
