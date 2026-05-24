@@ -15,15 +15,13 @@ Tek repoda **backend + mobil** birlikte tutulur:
 Deneme/
 ├── backend/          # Node.js API (Express 5, Prisma 7)
 ├── mobile/           # Flutter uygulaması (Faz 1 ✅, Faz 2A UI ✅ — E2E cihaz doğrulaması 🔶)
+├── flutter/          # Flutter dokümantasyonu (entegrasyon, gap, E2E)
+├── API/              # Backend / API dokümantasyonu (sözleşme, push, bildirim)
 ├── docker-compose.yml
 ├── AIDATPANEL.md     # Master referans
 ├── PLAN.md           # Bu dosya
-├── FLUTTER-BACKEND.md
 ├── ANALIZ_RAPORU.md  # Kod ↔ doküman analizi (tarihli snapshot)
-├── DOKUMANTASYON.md  # Tüm .md dosyaları indeksi ve bütünlük kuralları
-├── PLAN_BACKEND_PUSH.md  # Backend push A7–A12 ✅
-├── FLUTTER_ENTEGRASYON_PLANI.md  # Mobil ekip / AI (B-ANALYZE → B0–B6)
-└── YUSUF_YAPILANLAR_BİLDİRİM.md  # Bildirim checkpoint + Postman notları
+└── DOKUMANTASYON.md  # Tüm .md dosyaları indeksi ve bütünlük kuralları
 ```
 
 ### Git dalları
@@ -44,7 +42,7 @@ Deneme/
 | **Flutter mobil** | ✅ | ✅ | B0–B6 kod tamam; manuel E2E checklist hazır |
 | **Uçtan uca Faz 2A** | — | 🔶 ~%90 | Gerçek cihazda FCM + E2E işaretlenmeli |
 
-Gap analizi: [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md) · Tarihli snapshot: [`ANALIZ_RAPORU.md`](ANALIZ_RAPORU.md)
+Gap analizi: [`flutter/FLUTTER_GAP_RAPORU.md`](flutter/FLUTTER_GAP_RAPORU.md) · Tarihli snapshot: [`ANALIZ_RAPORU.md`](ANALIZ_RAPORU.md)
 
 ---
 
@@ -298,7 +296,7 @@ Yanıt: `{ created, pushSent, pushFailed }`
 
 # BÖLÜM B — Flutter
 
-> Backend Faz 2A ✅ · Flutter B0–B6 ✅ (kod). Sıradaki: **manuel E2E** ([`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)) ve tasarım polish. Faz 1 özeti aşağıda.
+> Backend Faz 2A ✅ · Flutter B0–B6 ✅ (kod). Sıradaki: **manuel E2E** ([`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md)) ve tasarım polish. Faz 1 özeti aşağıda.
 
 ## Faz 1 — Flutter (tamamlandı ✅)
 
@@ -318,7 +316,7 @@ Yanıt: `{ created, pushSent, pushFailed }`
 
 ## Faz 2A — Flutter (B0–B6, kod tamamlandı ✅)
 
-> Detaylı dosya listesi: [`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) · Gap: [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md)
+> Detaylı dosya listesi: [`flutter/FLUTTER_ENTEGRASYON_PLANI.md`](flutter/FLUTTER_ENTEGRASYON_PLANI.md) · Gap: [`flutter/FLUTTER_GAP_RAPORU.md`](flutter/FLUTTER_GAP_RAPORU.md)
 
 ## Aşama B0 — Firebase projesi ve dosyalar (0,5 gün) ✅
 
@@ -470,7 +468,7 @@ mobile/lib/features/expenses/
 ## Aşama B6 — Flutter test ve E2E checklist (0,5 gün) 🔶
 
 - [x] Unit: `test/core/notification_payload_test.dart`
-- [x] Manuel E2E: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) (cihazda işaretlenecek)
+- [x] Manuel E2E: [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md) (cihazda işaretlenecek)
 - [ ] Senaryolar (özet):
 
 | # | Senaryo |
@@ -539,9 +537,9 @@ backend/src/
 - [x] `AIDATPANEL.md` — FCM zorunlu, endpoint ✅
 - [x] `PLAN.md` ilerleme tablosu güncel
 - [x] `ANALIZ_RAPORU.md` — tam proje analizi
-- [x] `YUSUF_YAPILANLAR_BİLDİRİM.md` — bildirim Postman checkpoint
+- [x] `API/YUSUF_YAPILANLAR_BİLDİRİM.md` — bildirim Postman checkpoint
 - [x] `DOKUMANTASYON.md` — dokümantasyon indeksi
-- [x] `PLAN_BACKEND_PUSH.md`, `FLUTTER_ENTEGRASYON_PLANI.md`
+- [x] `API/PLAN_BACKEND_PUSH.md`, `flutter/FLUTTER_ENTEGRASYON_PLANI.md`
 
 ---
 
@@ -558,7 +556,7 @@ backend/src/
 | A4 — Gider API | ✅ |
 | A5 — Duyuru + toplu push | ✅ |
 | A6 — Test & dokümantasyon | ✅ |
-| A7–A12 — Push tamamlama | ✅ ([`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md)) |
+| A7–A12 — Push tamamlama | ✅ ([`API/PLAN_BACKEND_PUSH.md`](API/PLAN_BACKEND_PUSH.md)) |
 
 ## Flutter
 
@@ -575,7 +573,7 @@ backend/src/
 
 ## Öncelik sırası (sıradaki iş)
 
-1. **[`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)** — gerçek cihazda FCM + 2 hesap
+1. **[`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md)** — gerçek cihazda FCM + 2 hesap
 2. **UI tasarım polish** (Faz 2A sonrası)
 3. **Faz 2B** — dekont upload, `DEKONT_*`
 

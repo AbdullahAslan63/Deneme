@@ -37,16 +37,12 @@ flutter run --dart-define=API_BASE_URL=http://10.0.2.2:4200
 
 Önce [DOKUMANTASYON.md](./DOKUMANTASYON.md) — dosyaların rolü ve güncellik hiyerarşisi.
 
-| Dosya | Ne için? |
-|-------|----------|
+| Klasör / dosya | Ne için? |
+|----------------|----------|
 | [AIDATPANEL.md](./AIDATPANEL.md) | Master referans (API, modeller, fazlar) |
 | [PLAN.md](./PLAN.md) | Geliştirme planı (backend A0–A6 ✅, Flutter B0–B6 kod ✅) |
-| [FLUTTER_GAP_RAPORU.md](./FLUTTER_GAP_RAPORU.md) | Mobil gap analizi (2026-05-20) |
-| [mobile/E2E_CHECKLIST.md](./mobile/E2E_CHECKLIST.md) | Manuel uçtan uca test (B6) |
-| [PLAN_BACKEND_PUSH.md](./PLAN_BACKEND_PUSH.md) | Backend push tamamlama (A7–A12 ✅) |
-| [FLUTTER-BACKEND.md](./FLUTTER-BACKEND.md) | Flutter ↔ API sözleşmesi |
-| [FLUTTER_ENTEGRASYON_PLANI.md](./FLUTTER_ENTEGRASYON_PLANI.md) | Mobil ekip / AI: önce gap analizi, sonra B0–B6 |
-| [YUSUF_YAPILANLAR_BİLDİRİM.md](./YUSUF_YAPILANLAR_BİLDİRİM.md) | Bildirim modülü Postman checkpoint |
+| [flutter/](./flutter/README.md) | Flutter entegrasyon, gap analizi, E2E checklist |
+| [API/](./API/README.md) | API sözleşmesi, backend push, bildirim checkpoint |
 | [ANALIZ_RAPORU.md](./ANALIZ_RAPORU.md) | Proje analizi (tarihli anlık görüntü) |
 
 ## API

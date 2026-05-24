@@ -16,7 +16,7 @@
 | **Otomatik test (`test.py`)** | ✅ | 120 OK (Faz 2A+ push senaryoları dahil) |
 | **Gerçek duyuru → sakin (Postman)** | 🔶 Opsiyonel | Klasör 3; backend + mobil kod hazır |
 | **Firebase push (gerçek cihaz)** | 🔶 E2E | Dev'de `pushSkipped` normal; fiziksel cihaz gerekir |
-| **Flutter bildirim ekranı** | ✅ Kod | `/notifications`, FCM scope — E2E: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
+| **Flutter bildirim ekranı** | ✅ Kod | `/notifications`, FCM scope — E2E: [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md) |
 | **DUE_REMINDER / DUE_PAID / TICKET_CREATED push** | ✅ Backend | Mobil deep link ✅ kod; cihaz doğrulaması E2E |
 
 **Sonuç:** Backend bildirim modülü **tamam**. Mobil Faz 2A **kod tamam** (2026-05-20); kalan: gerçek cihazda FCM + E2E işaretleme.
@@ -254,7 +254,7 @@ AIDATPANEL.md satır 389–397, 825, 970–975 ile uyumlu:
 | Flutter bildirim ekranı | ✅ `/notifications` + FCM (`mobile/lib/`) |
 | Duyuru UI | ✅ `AnnouncementFormSheet` |
 | `DUE_REMINDER` / `DUE_PAID` / `TICKET_CREATED` | ✅ Backend + mobil deep link kodu |
-| Gerçek cihazda FCM push | 🔶 E2E: [`mobile/E2E_CHECKLIST.md`](../mobile/E2E_CHECKLIST.md) |
+| Gerçek cihazda FCM push | 🔶 E2E: [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md) |
 | WhatsApp / SMS hatırlatma | ⬜ Faz 3 |
 | Production deploy (VPS) | ⬜ DevOps |
 
@@ -471,7 +471,7 @@ npm run demo:notifications
 | 1 | Postman klasör 3 — duyuru → sakin bildirimi | Yusuf | ❌ Kod hazır, sadece test |
 | 2 | `PATCH read-all` Postman testi | Yusuf | ❌ Kod hazır |
 | 3 | `python test.py` smoke test | Yusuf | ❌ Kod hazır |
-| 4 | E2E checklist (FCM + 2 hesap) | Mobil + Yusuf | [`mobile/E2E_CHECKLIST.md`](../mobile/E2E_CHECKLIST.md) |
+| 4 | E2E checklist (FCM + 2 hesap) | Mobil + Yusuf | [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md) |
 | 5 | Firebase Console + gerçek FCM test | Mobil + `.env` | Konfigürasyon |
 | 6 | Production VPS deploy | DevOps | Deploy |
 

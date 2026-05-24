@@ -3,9 +3,9 @@
 > **Amaç:** Arıza/talep, gider ve bildirim özelliklerini Flutter’da uygularken backend sözleşmesine **birebir** uyum.  
 > **Hedef kitle:** Mobil geliştirici + yapay zeka analizi (bu dosyayı tek kaynak kabul edin).  
 > **Backend referans:** `backend/src/`, `backend/prisma/schema.prisma`, `backend/test.py`  
-> **Plan:** [`PLAN.md`](PLAN.md) Bölüm B (B0–B6) · Özet: [`AIDATPANEL.md`](AIDATPANEL.md)
+> **Plan:** [`PLAN.md`](../PLAN.md) Bölüm B (B0–B6) · Özet: [`AIDATPANEL.md`](../AIDATPANEL.md)
 
-**Son senkron:** 2026-05-20 · Backend Faz 2A+ ✅ · Flutter B0–B6 kod ✅ · E2E: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
+**Son senkron:** 2026-05-20 · Backend Faz 2A+ ✅ · Flutter B0–B6 kod ✅ · E2E: [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md) · Bütünlük: [`DOKUMANTASYON.md`](../DOKUMANTASYON.md)
 
 ---
 
@@ -13,7 +13,7 @@
 
 1. **Backend tek doğruluk kaynağıdır.** Bu dosyada veya tasarımda yer alan ancak aşağıdaki endpoint/JSON örneklerinde **olmayan** alanları modele, UI’ya veya mock’a **eklemeyin**.
 2. **Prisma şemasında olup API’de dönmeyen alanları kullanmayın** (ör. `User.fcmToken` yanıtta asla gelmez; `Expense.building` nesnesi liste yanıtında yok).
-3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama. (`DUE_PAID` / `DUE_REMINDER` / `TICKET_*` push **üretilir** — mobil UI ve deep link **B2–B3 kodda bağlı**; cihaz doğrulaması: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md).)
+3. **Henüz implemente edilmeyen backend özelliklerini UI’da “hazır” göstermeyin:** dekont upload, `receiptUrl` dosya seçici (yalnızca HTTPS URL string), RevenueCat kilidi, WhatsApp/SMS, PDF rapor, bildirim **offset** sayfalama. (`DUE_PAID` / `DUE_REMINDER` / `TICKET_*` push **üretilir** — mobil UI ve deep link **B2–B3 kodda bağlı**; cihaz doğrulaması: [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md).)
 4. **Enum değerleri** yalnızca backend’in kabul ettiği string’ler; ek değer uydurmayın.
 5. **Tutar alanları:** Gider `amount` ve özet `totalAmount` / `byCategory[].amount` API’de **string** gelir (`"1250.50"`). Parse ederken `double.tryParse` kullanın; gönderirken gider create/update body’de **number** (JSON float) gönderin.
 6. **Tarih alanları:** İstek gövdelerinde **ISO 8601** (`2026-05-15T10:00:00.000Z`). Yanıtlarda `createdAt`, `updatedAt`, `date` ISO string.
@@ -611,7 +611,7 @@ FCM tap: `notification_payload.dart` içinde `type` + `ticketId` → `context.pu
 | **B3** | `features/tickets` sakin + yönetici | ✅ |
 | **B4** | `features/expenses` yönetici | ✅ |
 | **B5** | Dashboard + duyuru UI + `main_dev` mock | ✅ |
-| **B6** | Manuel E2E checklist | 🔶 [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
+| **B6** | Manuel E2E checklist | 🔶 [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md) |
 
 ### 13.1 `main_dev` mock
 
@@ -621,7 +621,7 @@ FCM tap: `notification_payload.dart` içinde `type` + `ticketId` → `context.pu
 
 ## 14. Manuel E2E checklist
 
-Tam liste: [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md).
+Tam liste: [`flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md).
 
 1. [ ] Yönetici giriş → `PUT /me/fcm-token` 200  
 2. [ ] Sakin join → token kayıt  

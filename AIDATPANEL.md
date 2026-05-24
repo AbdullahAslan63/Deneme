@@ -526,7 +526,7 @@ mobile/lib/
 └── shared/widgets/        settings_tab (bildirimler + badge), toast, …
 
 mobile/test/               auth_validators_test, notification_payload_test
-mobile/E2E_CHECKLIST.md    manuel B6
+flutter/E2E_CHECKLIST.md    manuel B6
 mobile/tool/               i18n_scan, check_translations, add_translation
 ```
 
@@ -815,7 +815,7 @@ Güncel liste: **Backend durum özeti** + `backend/prisma/schema.prisma` + `back
 
 ## 📋 Faz 2A — Gider, Talep, Bildirim + Firebase FCM
 
-> **Ayrıntılı plan:** [`PLAN.md`](PLAN.md) · Backend push: [`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md) ✅ · Flutter: [`FLUTTER_ENTEGRASYON_PLANI.md`](FLUTTER_ENTEGRASYON_PLANI.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
+> **Ayrıntılı plan:** [`PLAN.md`](PLAN.md) · Backend push: [`API/PLAN_BACKEND_PUSH.md`](API/PLAN_BACKEND_PUSH.md) ✅ · Flutter: [`flutter/FLUTTER_ENTEGRASYON_PLANI.md`](flutter/FLUTTER_ENTEGRASYON_PLANI.md) · Bütünlük: [`DOKUMANTASYON.md`](DOKUMANTASYON.md)
 
 **Hedef:** Expense / Ticket / Notification REST API; **Firebase Admin push zorunlu**; Flutter’da FCM + bildirim/talep/gider ekranları — **kod tamam** (2026-05-20), E2E + polish kaldı.
 

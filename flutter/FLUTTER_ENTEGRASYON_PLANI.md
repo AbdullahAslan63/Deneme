@@ -12,7 +12,7 @@
 
 1. **Her oturumda önce [B-ANALYZE](#b-analyze-zorunlu-ilk-adım)** bölümünü uygula; eski analiz raporlarına veya sohbet özetlerine güvenme.
 2. Backend tek doğruluk kaynağıdır: `backend/src/`, `backend/prisma/schema.prisma`, `backend/test.py`.
-3. Çakışmada sıra: **kod > `FLUTTER-BACKEND.md` > `PLAN.md` > bu dosya**.
+3. Çakışmada sıra: **kod > `../API/FLUTTER-BACKEND.md` > `PLAN.md` > bu dosya**.
 4. Her aşama bitince **Çıkış kriterleri** kutusunu işaretle; sonraki aşamaya geç.
 5. Kapsam dışı özellikleri UI’da “hazır” gösterme (dekont upload, RevenueCat kilidi, WhatsApp/SMS, PDF rapor).
 
@@ -20,13 +20,13 @@
 
 | Dosya | İçerik |
 |-------|--------|
-| [`FLUTTER-BACKEND.md`](FLUTTER-BACKEND.md) | Endpoint + JSON sözleşmesi (bazı push tipleri güncellenmiş olabilir — B-ANALYZE ile doğrula) |
-| [`PLAN.md`](PLAN.md) | B0–B6 özet aşamalar |
-| [`PLAN_BACKEND_PUSH.md`](PLAN_BACKEND_PUSH.md) | Backend push tamamlama notları |
-| [`AIDATPANEL.md`](AIDATPANEL.md) | Ürün özeti |
-| [`backend/postman/AidatPanel-Notifications.postman_collection.json`](backend/postman/AidatPanel-Notifications.postman_collection.json) | Manuel API test |
-| [`YUSUF_YAPILANLAR_BİLDİRİM.md`](YUSUF_YAPILANLAR_BİLDİRİM.md) | Bildirim / Postman notları |
-| [`DOKUMANTASYON.md`](DOKUMANTASYON.md) | Tüm `.md` bütünlük indeksi |
+| [`../API/FLUTTER-BACKEND.md`](../API/FLUTTER-BACKEND.md) | Endpoint + JSON sözleşmesi (bazı push tipleri güncellenmiş olabilir — B-ANALYZE ile doğrula) |
+| [`PLAN.md`](../PLAN.md) | B0–B6 özet aşamalar |
+| [`API/PLAN_BACKEND_PUSH.md`](../API/PLAN_BACKEND_PUSH.md) | Backend push tamamlama notları |
+| [`AIDATPANEL.md`](../AIDATPANEL.md) | Ürün özeti |
+| [`backend/postman/AidatPanel-Notifications.postman_collection.json`](../backend/postman/AidatPanel-Notifications.postman_collection.json) | Manuel API test |
+| [`API/YUSUF_YAPILANLAR_BİLDİRİM.md`](../API/YUSUF_YAPILANLAR_BİLDİRİM.md) | Bildirim / Postman notları |
+| [`DOKUMANTASYON.md`](../DOKUMANTASYON.md) | Tüm `.md` bütünlük indeksi |
 
 ---
 
@@ -102,7 +102,7 @@ test -f mobile/lib/firebase_options.dart && echo "firebase_options: VAR" || echo
 test -f mobile/android/app/google-services.json && echo "google-services: VAR" || echo "YOK"
 ```
 
-**B-ANALYZE tablosu (2026-05-20 — dolduruldu):** Detay: [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md)
+**B-ANALYZE tablosu (2026-05-20 — dolduruldu):** Detay: [`flutter/FLUTTER_GAP_RAPORU.md`](flutter/FLUTTER_GAP_RAPORU.md)
 
 | Kontrol | Backend | Mobil | Gap / not |
 |---------|---------|-------|-----------|
@@ -150,7 +150,7 @@ test -f mobile/android/app/google-services.json && echo "google-services: VAR" |
 | GoRouter | `/notifications`, `/tickets/:id`, bina bağlamı rotaları var mı? |
 | i18n | `features.tickets`, `features.expenses`, `features.notifications` anahtarları var mı? |
 
-**Çıktı:** `FLUTTER_GAP_RAPORU.md` (veya bu dosyanın altına tarihli bölüm) — maddeler: `P0` (bloklayıcı), `P1`, `P2`.  
+**Çıktı:** `flutter/FLUTTER_GAP_RAPORU.md` (veya bu dosyanın altına tarihli bölüm) — maddeler: `P0` (bloklayıcı), `P1`, `P2`.  
 **P0** bitmeden B3+ ekran işine ağırlık verme (FCM ve bildirim rotası genelde P0).
 
 ## B-ANALYZE.5 — Çıkış kriteri
@@ -387,13 +387,13 @@ Mevcut: `/manager-dashboard`, `/resident-dashboard` — korunur.
 ```
 AidatPanel Flutter Faz 2A entegrasyonu yapıyorum.
 
-1) Önce FLUTTER_ENTEGRASYON_PLANI.md içindeki B-ANALYZE adımlarını uygula:
+1) Önce flutter/FLUTTER_ENTEGRASYON_PLANI.md içindeki B-ANALYZE adımlarını uygula:
    - mobile/ ve backend/ kodunu tara
    - Güncel gap raporu üret (eski analizlere güvenme)
    - P0/P1/P2 önceliklendir
 
 2) Gap raporuna göre sırayla B0→B6 uygula.
-3) Backend sözleşmesi: FLUTTER-BACKEND.md + backend/src kodu.
+3) Backend sözleşmesi: API/FLUTTER-BACKEND.md + backend/src kodu.
 4) Mevcut tema ve aidat ekranları kalıbına uy.
 5) Her aşama sonunda çıkış kriterlerini doğrula.
 
@@ -405,13 +405,13 @@ API base (dev): http://127.0.0.1:4200/api/v1
 
 # Definition of Done (Faz 2A Flutter)
 
-- [x] B-ANALYZE gap raporu → [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md) (2026-05-20)
+- [x] B-ANALYZE gap raporu → [`flutter/FLUTTER_GAP_RAPORU.md`](flutter/FLUTTER_GAP_RAPORU.md) (2026-05-20)
 - [x] B0–B1: FCM kod (`initFirebase`, token upload, `FcmScope`)
 - [x] B2: Bildirim listesi + deep link
 - [x] B3: Talep sakin + yönetici
 - [x] B4: Gider CRUD + özet
 - [x] B5: Duyuru sheet + dashboard + `main_dev` mock
-- [ ] B6: Manuel E2E checklist cihazda işaretli → [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)
+- [ ] B6: Manuel E2E checklist cihazda işaretli → [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md)
 - [x] `ApiConstants` backend ile birebir
 - [x] Ham enum kullanıcıya gösterilmiyor (Slang)
 

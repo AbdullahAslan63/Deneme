@@ -1,7 +1,7 @@
 # Flutter Gap Raporu (B-ANALYZE çıktısı)
 
 > **Tarih:** 2026-05-20  
-> **Kaynak:** `mobile/lib/` kod taraması + `FLUTTER-BACKEND.md` + `backend/test.py`  
+> **Kaynak:** `mobile/lib/` kod taraması + `../API/FLUTTER-BACKEND.md` + `backend/test.py`  
 > **Önceki şablon:** Bu dosya dolduruldu; sabit “tasarım eksikleri” listesi kullanılmadı.
 
 ---
@@ -24,7 +24,7 @@
 | P1 (doğrulama / cihaz) | 2 | Gerçek cihazda FCM + manuel E2E |
 | P2 (polish / Faz 2B+) | 4 | Tasarım, iOS plist, aidat deep link UI, ayarlar “yakında” |
 
-**Sonuç:** Flutter **Faz 2A implementasyonu tamamlandı**; üretim güveni için [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) işaretlenmeli.
+**Sonuç:** Flutter **Faz 2A implementasyonu tamamlandı**; üretim güveni için [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md) işaretlenmeli.
 
 ---
 
@@ -67,7 +67,7 @@
 
 ## Kalan işler (Faz 2A dışı veya doğrulama)
 
-1. **Manuel E2E** — [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)
+1. **Manuel E2E** — [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md)
 2. **iOS** — `GoogleService-Info.plist` (`flutterfire configure` ile cihaz/hedef için)
 3. **Tasarım** — Faz 2A fonksiyon sonrası polish
 4. **Ayarlar** — gizlilik / yardım / çoklu dil hâlâ `comingSoon` toast (ürün kararı)

@@ -20,7 +20,7 @@ flutter run -t lib/main_dev.dart
 
 Faz 2 (talep, gider, bildirim, duyuru) mock verileri `lib/dev/mock_faz2_datasources.dart` içinde seed edilir.
 
-Yerel API ile uçtan uca test: [`E2E_CHECKLIST.md`](E2E_CHECKLIST.md).
+Yerel API ile uçtan uca test: [`../flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md).
 
 ## Çeviri ve görevler
 
@@ -36,7 +36,7 @@ Yerel API ile uçtan uca test: [`E2E_CHECKLIST.md`](E2E_CHECKLIST.md).
 
 ## Proje belgeleri
 
-API sözleşmesi ve fazlar: repoda [`../AIDATPANEL.md`](../AIDATPANEL.md), [`../FLUTTER-BACKEND.md`](../FLUTTER-BACKEND.md), [`../PLAN.md`](../PLAN.md), [`../DOKUMANTASYON.md`](../DOKUMANTASYON.md). Manuel test: [`E2E_CHECKLIST.md`](E2E_CHECKLIST.md).
+API sözleşmesi ve fazlar: repoda [`../AIDATPANEL.md`](../AIDATPANEL.md), [`../API/FLUTTER-BACKEND.md`](../API/FLUTTER-BACKEND.md), [`../PLAN.md`](../PLAN.md), [`../DOKUMANTASYON.md`](../DOKUMANTASYON.md). Manuel test: [`../flutter/E2E_CHECKLIST.md`](../flutter/E2E_CHECKLIST.md).
 
 ---
 

@@ -1,8 +1,8 @@
 # AidatPanel — Kapsamlı Proje Analiz Raporu
 
 > **İlk tarih:** 2026-05-19 · **Son senkron:** 2026-05-20  
-> **Güncel özet (aşağıdaki bölüm esas alınır):** [`FLUTTER_GAP_RAPORU.md`](FLUTTER_GAP_RAPORU.md) · [`DOKUMANTASYON.md`](DOKUMANTASYON.md) · [`PLAN.md`](PLAN.md)  
-> **E2E:** [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md)
+> **Güncel özet (aşağıdaki bölüm esas alınır):** [`flutter/FLUTTER_GAP_RAPORU.md`](flutter/FLUTTER_GAP_RAPORU.md) · [`DOKUMANTASYON.md`](DOKUMANTASYON.md) · [`PLAN.md`](PLAN.md)  
+> **E2E:** [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md)
 
 ---
 
@@ -156,7 +156,7 @@ Yerel workspace: **`mobile/` + `backend/`** tek kök dizinde (`Deneme/`).
 | B3 | Talep feature | ✅ |
 | B4 | Gider feature | ✅ |
 | B5 | Dashboard + `main_dev` mock | ✅ |
-| B6 | Test & E2E checklist | 🔶 [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) |
+| B6 | Test & E2E checklist | 🔶 [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md) |
 
 ### Mobil — tamamlanan (Faz 2A kod)
 
@@ -170,7 +170,7 @@ Yerel workspace: **`mobile/` + `backend/`** tek kök dizinde (`Deneme/`).
 
 ### Mobil — kalan (Faz 2A dışı veya doğrulama)
 
-- Manuel E2E checklist ([`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md))
+- Manuel E2E checklist ([`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md))
 - iOS `GoogleService-Info.plist` (hedef için `flutterfire configure`)
 - `PUT /me/language` backend senkronu (opsiyonel)
 - Gizlilik/KVKK/yardım: `comingSoon` toast (3 ayar satırı)
@@ -443,7 +443,7 @@ Tüm aşamalar ✅ işaretli; kod incelemesi bunu **doğruluyor**.
 
 ### P0 — Kritik (2026-05-20)
 
-1. **Manuel E2E:** [`mobile/E2E_CHECKLIST.md`](mobile/E2E_CHECKLIST.md) — 2 hesap, gerçek cihaz / Play AVD
+1. **Manuel E2E:** [`flutter/E2E_CHECKLIST.md`](flutter/E2E_CHECKLIST.md) — 2 hesap, gerçek cihaz / Play AVD
 2. **iOS Firebase:** `flutterfire configure` → `GoogleService-Info.plist`
 3. **`test.py` yerel:** `AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1`
 
@@ -547,4 +547,4 @@ cd backend && AIDATPANEL_API_BASE=http://127.0.0.1:4200/api/v1 python test.py
 
 ---
 
-*Son senkron: 2026-05-20 — tüm proje `.md` dosyaları kod tabanı ile hizalandı. Güncel gap: `FLUTTER_GAP_RAPORU.md`.*
+*Son senkron: 2026-05-20 — tüm proje `.md` dosyaları kod tabanı ile hizalandı. Güncel gap: `flutter/FLUTTER_GAP_RAPORU.md`.*
